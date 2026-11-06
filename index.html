@@ -178,11 +178,11 @@ const DISEASES=[
 ];
 const CHILL=[{n:"ข้าวมันไก่เจ้าเด็ด",c:1,h:2},{n:"หมูกระทะกับเพื่อน",c:2,h:3},{n:"ดูหนังรอบดึก",c:3,h:4},{n:"ทริปทะเลบางแสน",c:5,h:7}];
 const CHARS=[
- {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 แต่มีเงิน 12 บุหรี่ 2 ซอง และรู้มุมแอบสูบ สูบที่ที่ทำงานได้",set:p=>{p.add=3;p.craving=2;p.money=12;p.hand.push("cheap")}},
- {id:"newbie",name:"เพิ่งเริ่มสูบ",d:"เริ่มความอยาก 0 แต่มีเงินแค่ 2 ไม่มีบุหรี่ และติดเร็ว สูบหมดทุก 2 ซองติด +1",set:p=>{p.add=2;p.craving=0;p.money=2;p.hand=[]}},
- {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เริ่มความอยาก 3",set:p=>{p.craving=3}},
+ {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 แต่มีเงิน 12 บุหรี่ 2 ซอง สูบที่ที่ทำงานได้ และชินแล้ว สูบหมดทุก 4 ซองถึงติด +1",set:p=>{p.add=3;p.craving=2;p.money=12;p.hand.push("cheap")}},
+ {id:"newbie",name:"เพิ่งเริ่มสูบ",d:"เริ่มความอยาก 0 เงิน 5 ไม่มีบุหรี่ และติดเร็ว สูบหมดทุก 2 ซองติด +1",set:p=>{p.add=2;p.craving=0;p.money=5;p.hand=[]}},
+ {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เริ่มความอยาก 3 และเงินแค่ 2",set:p=>{p.craving=3;p.money=2}},
  {id:"parent",name:"พ่อแม่ลูกอ่อน",d:"สูบที่บ้านไม่ได้ แต่พักที่บ้านได้โทเคนสนับสนุน +1 ด้วย",set:p=>{}},
- {id:"social",name:"สายปาร์ตี้",d:"ชวนสูบสำเร็จได้ความสุข +2 แทน +1 แต่พักที่บ้านคนเดียวไม่ได้ความสุข",set:p=>{}},
+ {id:"social",name:"สายปาร์ตี้",d:"เริ่มความอยาก 3 ชวนสูบสำเร็จได้ความสุข +2 แทน +1 แต่พักที่บ้านคนเดียวไม่ได้ความสุข",set:p=>{p.craving=3}},
  {id:"warned",name:"หมอเตือนแล้ว",d:"เริ่มมีโทเคนโรค 2 แต่ทอยต้านใจ +1 เสมอ",set:p=>{p.disease=2}}
 ];
 const GOALS=[
@@ -271,7 +271,7 @@ function puff(p,kind){
  if(s.d)addDisease(p,s.d,kind==="cig"?"บุหรี่":"บุหรี่ไฟฟ้า");
  if(s.a)setAdd(p,p.add+s.a);
  a.pos++;
- if(a.pos>=pk.slots.length){if(kind==="cig"){p.active=null;p.packsDone++;if(p.packsDone%(isC(p,"newbie")?2:3)===0)setAdd(p,p.add+1)}else{p.apod=null;p.podsDone=(p.podsDone||0)+1;if(p.podsDone%2===0)setAdd(p,p.add+1)}log(`${p.name} ${kind==="cig"?"สูบหมดซอง":"พ็อดหมด"}`)}
+ if(a.pos>=pk.slots.length){if(kind==="cig"){p.active=null;p.packsDone++;if(p.packsDone%(isC(p,"newbie")?2:isC(p,"veteran")?4:3)===0)setAdd(p,p.add+1)}else{p.apod=null;p.podsDone=(p.podsDone||0)+1;if(p.podsDone%2===0)setAdd(p,p.add+1)}log(`${p.name} ${kind==="cig"?"สูบหมดซอง":"พ็อดหมด"}`)}
  else if(kind==="cig")p.active=a;else p.apod=a;
 }
 const canCig=p=>p.active||p.hand.length;
