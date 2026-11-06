@@ -146,16 +146,16 @@ td.r,th.r{text-align:right;font-family:var(--font-mono)}
 const MONTHS=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 const MONTH_CARDS=[
  {t:"ปีใหม่ ตั้งปณิธาน",d:"ใครประกาศเลิกเดือนนี้ ได้ +1 ทอยต้านใจตลอดช่วงเลิก"},
- {t:"วาเลนไทน์",d:"ร้านนั่งชิลถูกลง 1 เหรียญทุกอย่าง"},
- {t:"ปิดงบไตรมาส",d:"งานเครียด ทุกคนความอยาก +1 และทอยต้านใจ −1 ทั้งเดือน"},
- {t:"สงกรานต์",d:"ปาร์ตี้เยอะ คนที่เลิกอยู่ต้องทอยต้านใจทันที แต่ร้านนั่งชิลได้ความสุข +1"},
- {t:"วันงดสูบบุหรี่โลก (31 พ.ค.)",d:"คนที่เลิกอยู่หรือเลิกสำเร็จ ได้ความสุข +2"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"สงกรานต์",d:"ปาร์ตี้เยอะ คนที่เลิกอยู่ต้องทอยต้านใจทันที"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
  {t:"ตรวจสุขภาพประจำปี",d:"ใครมีโทเคนโรค 5 ขึ้นไป เสียความสุข 2"},
- {t:"ฝนตกหนัก",d:"สูบที่จุดสูบหลังตึกเสียความสุข 1 เพราะเปียก"},
- {t:"วันแม่",d:"ครอบครัวเป็นกำลังใจ คนที่เลิกอยู่ได้ +1 ทอยต้านใจทั้งเดือน"},
- {t:"งานเข้า มีโอที",d:"ที่ทำงานได้เงิน +4 แทน +3"},
- {t:"ออกพรรษา",d:"พักที่บ้านได้ความสุข +2"},
- {t:"ลอยกระทง",d:"ร้านนั่งชิลได้ความสุข +1"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
+ {t:"เดือนธรรมดา",d:"ไม่มีผลพิเศษ"},
  {t:"โบนัสสิ้นปี",d:"ทุกคนได้เงิน +3 แต่งานเลี้ยงเยอะ ความอยาก +1"}
 ];
 const LOCS=[
@@ -163,19 +163,18 @@ const LOCS=[
  {id:"work",name:"ที่ทำงาน",act:"รับเงิน +3",smoke:"no",chip:"ห้ามสูบ"},
  {id:"store",name:"ร้านสะดวกซื้อ",act:"ซื้อบุหรี่ พ็อด หมากฝรั่ง",smoke:"no",chip:"ห้ามสูบ"},
  {id:"spot",name:"จุดสูบหลังตึก",act:"พักกับเพื่อน ชวนสูบได้",smoke:"spot",chip:"จุดสูบ ไม่มีควันมือสอง"},
- {id:"chill",name:"ร้านนั่งชิล",act:"ซื้อความสุขอื่น ชวนสูบได้",smoke:"yes",chip:"สูบได้ มีควันมือสอง"},
- {id:"clinic",name:"คลินิก",act:"รักษาโรค รับยาช่วยเลิก (2 คิว/เดือน)",smoke:"no",chip:"ห้ามสูบ"}
+ {id:"chill",name:"ร้านนั่งชิล",act:"จ่าย 3 ได้ความสุข +4 · ชวนสูบได้",smoke:"yes",chip:"สูบได้ มีควันมือสอง"},
+ {id:"clinic",name:"คลินิก",act:"รักษาโรค หรือรับยาช่วยเลิก (2 คิว/เดือน)",smoke:"no",chip:"ห้ามสูบ"}
 ];
 const PACKS={
  cheap:{name:"ควันเทา",type:"cig",price:2,slots:[{c:-1},{c:-1,d:1},{c:-1},{c:-1,d:1,end:1}]},
- premium:{name:"ทองคำ",type:"cig",price:4,slots:[{c:-1,h:1},{c:-1},{c:-1,d:1},{c:-1,h:1},{c:-1,d:1,end:1}]},
  pod:{name:"มินต์ไอซ์",type:"pod",price:1,slots:[{c:-1},{c:-1,d:1},{c:-1},{c:-1,end:1}]}
 };
 const DISEASES=[
- {id:"cough",name:"ไอเรื้อรัง",pts:3,eff:"พักที่บ้านไม่ได้ความสุข"},
- {id:"breath",name:"หอบเหนื่อย",pts:4,eff:"ทำงานได้เงิน −1"},
- {id:"pneu",name:"ปอดอักเสบ",pts:5,eff:"ค่าคลินิก +1"},
- {id:"copd",name:"ถุงลมโป่งพอง",pts:6,eff:"เสียความสุข 1 ทุกสิ้นเดือน"}
+ {id:"cough",name:"ไอเรื้อรัง",pts:3},
+ {id:"breath",name:"หอบเหนื่อย",pts:4},
+ {id:"pneu",name:"ปอดอักเสบ",pts:5},
+ {id:"copd",name:"ถุงลมโป่งพอง",pts:6}
 ];
 const CHILL=[{n:"ข้าวมันไก่เจ้าเด็ด",c:1,h:2},{n:"หมูกระทะกับเพื่อน",c:2,h:3},{n:"ดูหนังรอบดึก",c:3,h:4},{n:"ทริปทะเลบางแสน",c:5,h:7}];
 const YIELD=[0,4,3,2,1,0];
@@ -219,10 +218,9 @@ async function tempt(p,reason){
  if(p.mode==="quit"&&p.qm>0)mods.push([`เลิกมาแล้ว ${p.qm} เดือน`,Math.min(p.qm,2)]);
  if(p.ny)mods.push(["ปณิธานปีใหม่",1]);
  if(p.med)mods.push(["ยาช่วยเลิกจากคลินิก",2]);
- if(isM(8)&&p.mode==="quit")mods.push(["วันแม่ ครอบครัวเป็นกำลังใจ",1]);
  if(p.support>0)mods.push(["ครอบครัวสนับสนุน (ใช้แล้วหมด)",1]);
  if(p.loc&&S.phase==="act"&&(p.loc==="spot"||p.loc==="chill"))mods.push(["อยู่ในที่ที่มีคนสูบ",-1]);
- if(isM(3)||p.stress)mods.push(["เครียด",-1]);
+ if(p.stress)mods.push(["เครียด",-1]);
  const givers=S.players.filter(o=>o!==p&&o.happy>=1);
  const body=`<p style="margin:0">${esc(reason)} ต้องทอยเต๋า + ตัวช่วย ให้ได้<b>มากกว่าความอยาก (${p.craving})</b> ถึงจะต้านได้</p>
  <div class="mods">${mods.length?mods.map(m=>`<div><span>${m[0]}</span><span class="num">${m[1]>0?"+":""}${m[1]}</span></div>`).join(""):"<div><span>ยังไม่มีตัวช่วย</span></div>"}</div>
@@ -273,7 +271,6 @@ async function smokeStep(p,loc){
  const r=await modal({title:"สูบไหม",who:p,body:`<div>ความอยากตอนนี้ <b class="num">${p.craving}</b>/6 · สูบ 1 ช่องได้ความสุข <b class="num">+${YIELD[p.add]}</b> จากระดับการติด ${p.add}</div>${others.length&&loc!=="spot"?`<div class="small">มี ${others.map(o=>esc(o.name)).join(", ")} อยู่ด้วย ถ้าสูบตรงนี้จะเสียความสุข 1 ต่อคน${allowed?" และบุหรี่มวนทำให้เขาได้โรค +1":""}</div>`:""}`,buttons:opts});
  if(r.v==="no")return;
  puff(p,r.v);
- if(isM(7)&&loc==="spot"){p.happy--;log(`${p.name} สูบตากฝน ความสุข −1`)}
  if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>addDisease(o,1,`ควันมือสองจาก ${p.name}`))}
  if(r.v==="pod"&&!allowed){const roll=d6();if(roll===1){p.money=Math.max(0,p.money-2);p.vape=false;p.apod=null;log(`${p.name} โดนจับบุหรี่ไฟฟ้า ปรับ 2 โดนยึดเครื่อง`,"m");render();await info("โดนจับ",`<div class="row"><div class="die">1</div><div>เสียเงิน 2 และโดนยึดเครื่อง ต้องซื้อใหม่ (ในไทยบุหรี่ไฟฟ้าผิดกฎหมาย)</div></div>`,p)}}
  render();
@@ -293,8 +290,8 @@ async function invite(p,o){
 
 /* ---------- places ---------- */
 async function doLoc(p,loc){
- if(loc==="home"){const h=has(p,"cough")?0:(isM(10)?2:1);p.happy+=h;log(`${p.name} พักที่บ้าน ความสุข +${h}`)}
- else if(loc==="work"){const m=(isM(9)?4:3)-(has(p,"breath")?1:0);p.money+=m;log(`${p.name} ทำงาน ได้เงิน +${m}`)}
+ if(loc==="home"){const h=1;p.happy+=h;log(`${p.name} พักที่บ้าน ความสุข +${h}`)}
+ else if(loc==="work"){const m=3;p.money+=m;log(`${p.name} ทำงาน ได้เงิน +${m}`)}
  else if(loc==="spot"){const o=S.present.spot.filter(id=>id!==p.id).length;if(o){p.happy++;log(`${p.name} คุยกับเพื่อนที่จุดสูบ ความสุข +1`)}else log(`${p.name} มายืนที่จุดสูบคนเดียว`)}
  else if(loc==="store")await shop(p);
  else if(loc==="chill")await chill(p);
@@ -303,33 +300,28 @@ async function doLoc(p,loc){
 }
 async function shop(p){
  for(;;){render();
-  const items=[["cheap",`บุหรี่${PACKS.cheap.name} (4 ช่อง)`,2],["premium",`บุหรี่${PACKS.premium.name} (5 ช่อง ความสุขพิเศษ)`,4],["device","เครื่องบุหรี่ไฟฟ้า",4],["pod",`พ็อด${PACKS.pod.name} (ต้องมีเครื่อง)`,1],["gum","หมากฝรั่งนิโคติน",2]];
+  const items=[["cheap",`บุหรี่${PACKS.cheap.name} (4 ช่อง)`,2],["device","เครื่องบุหรี่ไฟฟ้า",4],["pod",`พ็อด${PACKS.pod.name} (ต้องมีเครื่อง)`,1],["gum","หมากฝรั่งนิโคติน",2]];
   const r=await modal({title:"ร้านสะดวกซื้อ",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> เหรียญ</div>`,buttons:[...items.map(([k,n,c])=>({label:`${n} · ${c}`,value:k,disabled:p.money<c||(k==="device"&&p.vape)||(k==="pod"&&!p.vape)})),{label:"ออกจากร้าน",value:"done",kind:"primary"}]});
   if(r.v==="done")return;
   const c=items.find(i=>i[0]===r.v)[2];p.money-=c;
-  if(r.v==="cheap"||r.v==="premium")p.hand.push(r.v);else if(r.v==="pod")p.pods.push("pod");else if(r.v==="device")p.vape=true;else p.gum++;
+  if(r.v==="cheap")p.hand.push(r.v);else if(r.v==="pod")p.pods.push("pod");else if(r.v==="device")p.vape=true;else p.gum++;
   log(`${p.name} ซื้อ${items.find(i=>i[0]===r.v)[1].split(" (")[0]}`);
  }
 }
 async function chill(p){
- const disc=isM(2)?1:0,plus=(isM(4)||isM(11))?1:0;
- const offer=[...CHILL].sort(()=>Math.random()-.5).slice(0,3);
- const r=await modal({title:"ร้านนั่งชิล",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> · ความสุขแบบนี้ไม่มีโรค แต่ไม่ลดความอยาก</div>`,buttons:[...offer.map((o,i)=>{const c=Math.max(0,o.c-disc);return{label:`${o.n} · ${c} เหรียญ → +${o.h+plus}`,value:i,disabled:p.money<c}}),{label:"แค่นั่งเฉยๆ",value:-1}]});
- if(r.v>=0){const o=offer[r.v];p.money-=Math.max(0,o.c-disc);p.happy+=o.h+plus;log(`${p.name} ${o.n} ความสุข +${o.h+plus}`)}
+ const r=await modal({title:"ร้านนั่งชิล",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> · ความสุขแบบนี้ไม่มีโรค แต่ไม่ลดความอยาก</div>`,buttons:[{label:"จ่าย 3 เหรียญ → ความสุข +4",value:1,kind:"primary",disabled:p.money<3},{label:"แค่นั่งเฉยๆ",value:-1}]});
+ if(r.v>=0){p.money-=3;p.happy+=4;log(`${p.name} ใช้เวลาที่ร้านนั่งชิล ความสุข +4`)}
 }
 async function clinic(p){
  if(S.clinic>=2){await info("คิวเต็ม","คลินิกรับได้ 2 คิวต่อเดือน เดือนนี้เต็มแล้ว",p);return}
- const ex=has(p,"pneu")?1:0;
- const r=await modal({title:"คลินิก",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b>${ex?" · ปอดอักเสบทำให้ค่ารักษา +1":""}</div>`,buttons:[
-  {label:`ลบโทเคนโรค 2 · ${4+ex}`,value:"tok",disabled:p.money<4+ex||p.disease===0},
-  {label:`รักษาการ์ดโรค 1 ใบ · ${5+ex}`,value:"card",disabled:p.money<5+ex||!p.dcards.length},
-  {label:`ยาช่วยเลิก (ความอยาก −2, ทอย +2 ทั้งเดือน) · ${3+ex}`,value:"med",disabled:p.money<3+ex},
+ const r=await modal({title:"คลินิก",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> · การ์ดโรคเป็นโรคเรื้อรัง รักษาไม่หาย</div>`,buttons:[
+  {label:"รักษา: ลบโทเคนโรค 3 · 4 เหรียญ",value:"treat",disabled:p.money<4||p.disease===0},
+  {label:"ยาช่วยเลิก: ความอยาก −2, ทอย +2 ทั้งเดือน · 3 เหรียญ",value:"med",disabled:p.money<3},
   {label:"กลับ",value:"done"}]});
  if(r.v==="done")return;
  S.clinic++;
- if(r.v==="tok"){p.money-=4+ex;p.disease=Math.max(0,p.disease-2);log(`${p.name} รักษา ลบโทเคนโรค 2`)}
- if(r.v==="card"){p.money-=5+ex;const c=p.dcards.sort((a,b)=>b.pts-a.pts).shift();log(`${p.name} รักษา${c.name}หาย`)}
- if(r.v==="med"){p.money-=3+ex;p.med=true;p.craving=clamp(p.craving-2,0,6);log(`${p.name} รับยาช่วยเลิก`)}
+ if(r.v==="treat"){p.money-=4;p.disease=Math.max(0,p.disease-3);log(`${p.name} รักษา ลบโทเคนโรค 3`)}
+ if(r.v==="med"){p.money-=3;p.med=true;p.craving=clamp(p.craving-2,0,6);log(`${p.name} รับยาช่วยเลิก`)}
 }
 
 /* ---------- life events ---------- */
@@ -338,11 +330,7 @@ const EVENTS=[
  {t:"เพื่อนชวนออกไปสูบหลังข้าว",f:async p=>{if(p.mode!=="smoke")return tempt(p,"เพื่อนยื่นบุหรี่ให้");p.happy+=1;p.craving=clamp(p.craving-1,0,6);addDisease(p,1,"มวนของเพื่อน");return null},d:"คนสูบ: ความสุข +1 ความอยาก −1 โรค +1 · คนเลิก: ทอยต้านใจ"},
  {t:"ปาร์ตี้วันเกิดเพื่อน",f:async p=>{p.happy+=2;log(`${p.name} สนุกที่ปาร์ตี้ +2`);return p.mode!=="smoke"?tempt(p,"ทุกคนในปาร์ตี้สูบ"):null},d:"ความสุข +2 คนที่เลิกอยู่ต้องทอยต้านใจ"},
  {t:"ครอบครัวบอกว่าเป็นห่วง",f:async p=>{p.support++;if(p.mode!=="smoke")p.happy++;log(`${p.name} ได้กำลังใจจากครอบครัว`)},d:"ได้โทเคนสนับสนุน +1 ทอยครั้งหน้า คนที่เลิกอยู่ได้ความสุข +1"},
- {t:"ได้งานพิเศษ",f:async p=>{p.money+=2;log(`${p.name} ได้เงินพิเศษ +2`)},d:"เงิน +2"},
- {t:"เจอบุหรี่ทั้งซองในลิ้นชัก",f:async p=>{if(p.mode!=="smoke")return tempt(p,"บุหรี่วางอยู่ตรงหน้า");p.hand.push("cheap");log(`${p.name} ได้บุหรี่ฟรี 1 ซอง`)},d:"คนสูบ: ได้ซองถูกฟรี · คนเลิก: ทอยต้านใจ"},
- {t:"ได้กลิ่นควันจากโต๊ะข้างๆ",f:async p=>{if(p.mode!=="smoke")return tempt(p,"กลิ่นบุหรี่ลอยมา");p.craving=clamp(p.craving+1,0,6);log(`${p.name} ได้กลิ่นควัน ความอยาก +1`)},d:"คนสูบ: ความอยาก +1 · คนเลิก: ทอยต้านใจ"},
- {t:"วันสบายๆ",f:async p=>{p.happy++;log(`${p.name} วันสบายๆ +1`)},d:"ความสุข +1"},
- {t:"เป็นหวัด",f:async p=>{p.happy--;log(`${p.name} เป็นหวัด −1`)},d:"ความสุข −1"}
+ {t:"ได้งานพิเศษ",f:async p=>{p.money+=2;log(`${p.name} ได้เงินพิเศษ +2`)},d:"เงิน +2"}
 ];
 
 /* ---------- month flow ---------- */
@@ -352,10 +340,9 @@ async function startMonth(){
  for(const p of S.players){p.med=false;p.lapsedM=false;p.stress=false;p.loc=null;
   if(p.mode==="smoke")p.craving+=1+(p.add>=5?1:0);
   else if(p.mode==="quit")p.craving+=p.qm===0?2:p.qm===1?1:-1;
-  if((isM(3)||isM(12))&&p.mode!=="free")p.craving++;
+  if(isM(12)&&p.mode!=="free")p.craving++;
   p.craving=clamp(p.craving,0,6);
   if(isM(12))p.money+=3;
-  if(isM(5)&&p.mode!=="smoke")p.happy+=2;
   if(isM(6)&&p.disease>=5){p.happy-=2;log(`${p.name} ผลตรวจสุขภาพแย่ ความสุข −2`)}
  }
  render();
@@ -369,7 +356,6 @@ async function endMonth(){
   render();
   await info(`อีเวนต์ชีวิต: ${e.t}`,`<div>${e.d}</div>`,p);
   await e.f(p);
-  if(has(p,"copd"))p.happy-=p.dcards.filter(c=>c.id==="copd").length;
   if(p.mode!=="free"&&p.craving>=4){p.happy-=2;log(`${p.name} อาการถอน ความสุข −2`)}
   if(p.mode==="quit"){
    if(p.qm===0){p.happy--;log(`${p.name} เดือนแรกของการเลิก ทรมาน −1`)}
@@ -427,7 +413,7 @@ const TUT=[
   <p class="small" style="margin:0">ทำงานกับซื้อของสูบไม่ได้ คนติดหนักจะต้องคิดว่าจะเอาแอคชันไปหาเงินหรือไปสูบ</p>`},
  {t:"การ์ดบุหรี่แบบมีช่อง",b:()=>`<p style="margin:0">หนึ่งการ์ดคือหนึ่งซอง สูบ 1 ครั้ง = ถ่านไฟเลื่อนไป 1 ช่อง แล้วได้ผลตามไอคอนในช่องนั้น</p>
   <div class="stick">${PACKS.cheap.slots.map((s,i)=>slotHTML(s,i,i<1?"burnt":i===1?"lit":"")).join("")}</div>
-  <div class="mods"><div><span class="ic-c">อยาก−1</span><span>ความอยากลด</span></div><div><span class="ic-d">โรค+1</span><span>ได้โทเคนโรค</span></div><div><span class="ic-h">สุข+1</span><span>ความสุขพิเศษ (ยี่ห้อแพง)</span></div><div><span>ช่องสีน้ำตาล</span><span>ก้นกรอง ช่องสุดท้าย</span></div></div>
+  <div class="mods"><div><span class="ic-c">อยาก−1</span><span>ความอยากลด</span></div><div><span class="ic-d">โรค+1</span><span>ได้โทเคนโรค</span></div><div><span>ช่องสีน้ำตาล</span><span>ก้นกรอง ช่องสุดท้าย</span></div></div>
   <p class="small" style="margin:0">สูบหมด 3 ซอง ระดับการติด +1</p>`},
  {t:"ความอยากกับระดับการติด",b:()=>`<div><span class="label">ความอยาก</span>${miniTrack(7,3,4)}</div>
   <p style="margin:0">ขึ้นเองทุกเดือน สูบแล้วลด ถ้าสิ้นเดือนอยู่ในโซนแดง (4–6) = <b>อาการถอน ความสุข −2</b></p>
@@ -446,9 +432,9 @@ const TUT=[
   <div><span>คนสูบ</span><span>ความสุข −1 ต่อคน</span></div>
   <div><span>บุหรี่มวน</span><span>คนรอบข้างโรค +1</span></div></div>
   <p class="small" style="margin:0">"อยู่ด้วย" หมายถึงคนที่ไปสถานที่นั้นก่อนเราในรอบเดียวกัน</p>`},
- {t:"โรคและคลินิก",b:()=>`<p style="margin:0">โทเคนโรคครบ 3, 6, 9 จะจั่วการ์ดโรค มีแต้มติดลบตอนจบและมีโทษระหว่างเกม</p>
-  <div class="row">${DISEASES.map(c=>`<span class="dcard">${c.name} −${c.pts} · ${c.eff}</span>`).join("")}</div>
-  <p style="margin:0">คลินิกรับเดือนละ 2 คิว ลบโทเคนโรค รักษาการ์ดโรค หรือรับยาช่วยเลิกได้</p>`},
+ {t:"โรคและคลินิก",b:()=>`<p style="margin:0">โทเคนโรคครบ 3, 6, 9 จะจั่วการ์ดโรค 1 ใบ เป็นโรคเรื้อรัง ติดตัวจนจบเกม หักแต้มตอนจบ</p>
+  <div class="row">${DISEASES.map(c=>`<span class="dcard">${c.name} −${c.pts}</span>`).join("")}</div>
+  <p style="margin:0">คลินิกรับเดือนละ 2 คิว เลือกอย่างใดอย่างหนึ่ง: รักษา (ลบโทเคนโรค 3) หรือรับยาช่วยเลิก</p>`},
  {t:"การเลิกบุหรี่",b:()=>`<p style="margin:0">กด <b>ประกาศเลิก</b> ได้ตอนเริ่มตาของเรา ตั้งแต่นั้นห้ามสูบ</p>
   <div class="mods"><div><span>เดือนแรก</span><span>ความอยาก +1 ทรมานเพิ่ม −1</span></div><div><span>เดือนที่สอง</span><span>ความอยากค้างอยู่ ไม่ลด</span></div><div><span>เดือนที่สามขึ้นไป</span><span>ความอยาก −1 ทุกเดือน</span></div><div><span>ผ่าน 3 เดือน</span><span><b>โบนัส +5</b> ติดลด 2 โรคลด 2</span></div></div>
   <p style="margin:0">เจอสิ่งยั่วใจ ต้องทอยเต๋า + ตัวช่วย ให้ <b>มากกว่า</b> ความอยาก</p>
@@ -500,7 +486,7 @@ function boardHTML(p){
  </div>
  <div class="packs">${cards.join("")||'<div class="small">ไม่มีบุหรี่ในมือ</div>'}</div>
  <div class="row small">ในมือ: บุหรี่ ${p.hand.length} ซอง · พ็อด ${p.pods.length} · หมากฝรั่ง ${p.gum}${p.support?` · โทเคนสนับสนุน ${p.support}`:""}${p.med?" · ใช้ยาช่วยเลิกเดือนนี้":""}</div>
- ${p.dcards.length?`<div class="row">${p.dcards.map(c=>`<span class="dcard" title="${c.eff}">${c.name} −${c.pts} · ${c.eff}</span>`).join("")}</div>`:""}
+ ${p.dcards.length?`<div class="row">${p.dcards.map(c=>`<span class="dcard">${c.name} −${c.pts}</span>`).join("")}</div>`:""}
  ${S.phase==="act"&&S.players[S.cur]===p&&awaitLoc?freeActions(p):""}
  </section>`}
 
