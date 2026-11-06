@@ -178,20 +178,20 @@ const DISEASES=[
 ];
 const CHILL=[{n:"ข้าวมันไก่เจ้าเด็ด",c:1,h:2},{n:"หมูกระทะกับเพื่อน",c:2,h:3},{n:"ดูหนังรอบดึก",c:3,h:4},{n:"ทริปทะเลบางแสน",c:5,h:7}];
 const CHARS=[
- {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 ความอยาก 1 เงิน 12 บุหรี่ 2 ซอง สูบที่ที่ทำงานได้ ชินแล้ว สูบหมดทุก 4 ซองถึงติด +1 และสูบรวดไอเฉพาะทอยได้ 1",set:p=>{p.add=3;p.craving=1;p.money=12;p.hand.push("cheap")}},
+ {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 ความอยาก 1 เงิน 15 บุหรี่ 2 ซอง สูบที่ที่ทำงานได้ ชินแล้ว สูบหมดทุก 4 ซองถึงติด +1 และสูบรวดไอเฉพาะทอยได้ 1",set:p=>{p.add=3;p.craving=1;p.money=15;p.hand.push("cheap")}},
  {id:"newbie",name:"เพิ่งเริ่มสูบ",d:"เริ่มความอยาก 0 เงิน 5 ไม่มีบุหรี่ และติดเร็ว สูบหมดทุก 2 ซองติด +1",set:p=>{p.add=2;p.craving=0;p.money=5;p.hand=[]}},
- {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เริ่มความอยาก 4 และเงิน 4",set:p=>{p.craving=4;p.money=4}},
+ {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เหนื่อย ทำงานทีไรความสุข −1",set:p=>{}},
  {id:"parent",name:"พ่อแม่ลูกอ่อน",d:"เริ่มความอยาก 3 สูบที่บ้านไม่ได้ แต่พักที่บ้านได้โทเคนสนับสนุนด้วย (ถือได้ทีละ 1)",set:p=>{p.craving=3}},
  {id:"social",name:"สายปาร์ตี้",d:"เริ่มความอยาก 3 เงิน 2 ชวนสูบสำเร็จได้ความสุข +2 แทน +1 แต่พักที่บ้านคนเดียวไม่ได้ความสุข",set:p=>{p.craving=3;p.money=2}},
  {id:"warned",name:"หมอเตือนแล้ว",d:"เริ่มมีโทเคนโรค 3 ได้โรคเพิ่มครั้งแรกจั่วการ์ดโรคทันที แต่ทอยต้านใจ +1 เสมอ",set:p=>{p.disease=3}}
 ];
 const GOALS=[
- {id:"late",name:"เลิกช้าแต่ชัวร์",d:"ประกาศเลิกตั้งแต่เดือนมิถุนายนเป็นต้นไป และเลิกสำเร็จ",ok:p=>p.mode==="free"&&p.quitDeclared>=6},
- {id:"inviter",name:"ตัวป่วน",d:"ชวนคนอื่นสูบสำเร็จ 3 ครั้ง (เขารับ หรือเขาแพ้ใจ)",ok:p=>p.st.inv>=3},
- {id:"rich",name:"เก็บเงินเก่ง",d:"จบเกมมีเงิน 15 ขึ้นไป",ok:p=>p.money>=15},
- {id:"healthy",name:"ปอดสะอาด",d:"จบเกมโดยไม่มีการ์ดโรคเลย",ok:p=>p.dcards.length===0},
- {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้สักครั้ง",ok:p=>p.st.maxChain>=4},
- {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",ok:p=>p.mode==="free"&&!p.st.lapsed}
+ {id:"late",name:"เลิกช้าแต่ชัวร์",d:"ประกาศเลิกตั้งแต่เดือนมิถุนายนเป็นต้นไป และเลิกสำเร็จ",pts:4,ok:p=>p.mode==="free"&&p.quitDeclared>=6},
+ {id:"inviter",name:"ตัวป่วน",d:"ชวนคนอื่นสูบสำเร็จ 4 ครั้ง (เขารับ หรือเขาแพ้ใจ)",pts:3,ok:p=>p.st.inv>=4},
+ {id:"rich",name:"เก็บเงินเก่ง",d:"จบเกมมีเงิน 15 ขึ้นไป",pts:10,ok:p=>p.money>=15},
+ {id:"healthy",name:"ปอดสะอาด",d:"จบเกมมีการ์ดโรคไม่เกิน 1 ใบ",pts:8,ok:p=>p.dcards.length<=1},
+ {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้ 2 ครั้ง",pts:5,ok:p=>(p.st.c4||0)>=2},
+ {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",pts:8,ok:p=>p.mode==="free"&&!p.st.lapsed}
 ];
 const GOAL_PTS=6;
 const YIELD=[0,4,3,2,1,0];
@@ -298,7 +298,7 @@ async function smokeStep(p,loc){
   puff(p,r.v);n++;render();
  }
  if(n>1)log(`${p.name} สูบรวด ${n} ช่อง`);
- p.st.maxChain=Math.max(p.st.maxChain,n);
+ p.st.maxChain=Math.max(p.st.maxChain,n);if(n>=4)p.st.c4=(p.st.c4||0)+1;
  if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>addDisease(o,1,`ควันมือสองจาก ${p.name}`))}
  render();
  if((loc==="spot"||loc==="chill")&&others.length){
@@ -318,7 +318,7 @@ async function invite(p,o){
 /* ---------- places ---------- */
 async function doLoc(p,loc){
  if(loc==="home"){const h=isC(p,"social")?0:1;p.happy+=h;if(isC(p,"parent")&&p.support<1){p.support++;log(`${p.name} ลูกยิ้มให้ ได้โทเคนสนับสนุน`)}log(`${p.name} พักที่บ้าน ความสุข +${h}`)}
- else if(loc==="work"){const m=isC(p,"office")?4:3;p.money+=m;log(`${p.name} ทำงาน ได้เงิน +${m}`)}
+ else if(loc==="work"){const m=isC(p,"office")?4:3;p.money+=m;if(isC(p,"office")){p.happy--;log(`${p.name} ทำงานจนเหนื่อย ความสุข −1`)}log(`${p.name} ทำงาน ได้เงิน +${m}`)}
  else if(loc==="spot"){const o=S.present.spot.filter(id=>id!==p.id).length;if(o){const b=1;p.happy+=b;log(`${p.name} คุยกับเพื่อนที่จุดสูบ ความสุข +${b}`)}else log(`${p.name} มายืนที่จุดสูบคนเดียว`)}
  else if(loc==="store")await shop(p);
  else if(loc==="chill")await chill(p);
@@ -416,7 +416,7 @@ function deal(){
 }
 const isC=(p,id)=>p.char&&p.char.id===id;
 async function showGoal(p,first){
- await modal({title:first?`ส่งเครื่องให้ ${esc(p.name)}`:"เป้าหมายลับของคุณ",who:p,body:`<div><span class="label">ตัวละคร (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div><span class="label">เป้าหมายลับ (อย่าให้คนอื่นเห็น)</span><div><b>${p.goal.name}</b> · ${p.goal.d}</div><div class="small">ทำได้ตอนจบเกม ได้ +${GOAL_PTS}</div></div>`,buttons:[{label:first?"จำได้แล้ว ส่งต่อ":"ปิด",value:1,kind:"primary"}]});
+ await modal({title:first?`ส่งเครื่องให้ ${esc(p.name)}`:"เป้าหมายลับของคุณ",who:p,body:`<div><span class="label">ตัวละคร (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div><span class="label">เป้าหมายลับ (อย่าให้คนอื่นเห็น)</span><div><b>${p.goal.name}</b> · ${p.goal.d}</div><div class="small">ทำได้ตอนจบเกม ได้ +${p.goal.pts}</div></div>`,buttons:[{label:first?"จำได้แล้ว ส่งต่อ":"ปิด",value:1,kind:"primary"}]});
 }
 async function runGame(){
  if(!S.players[0].char)deal();
@@ -436,7 +436,7 @@ async function runGame(){
   }
   S.cur=-1;await endMonth();
  }
- for(const p of S.players){p.goalDone=!!p.goal.ok(p);if(p.goalDone){p.bonus+=GOAL_PTS;log(`${p.name} ทำเป้าหมายลับสำเร็จ: ${p.goal.name} +${GOAL_PTS}`,"m")}}
+ for(const p of S.players){p.goalDone=!!p.goal.ok(p);if(p.goalDone){p.bonus+=p.goal.pts;log(`${p.name} ทำเป้าหมายลับสำเร็จ: ${p.goal.name} +${p.goal.pts}`,"m")}}
  S.over=true;render();
 }
 
@@ -447,7 +447,7 @@ const TUT=[
   <div class="mods"><div><span>ความสุข</span><span>+</span></div><div><span>โบนัส (เลิกสำเร็จ, ให้กำลังใจเพื่อน)</span><span>+</span></div><div><span>การ์ดโรค และโทเคนโรค (ตัวละ 1)</span><span>−</span></div></div>
   <p class="small" style="margin:0">จะสูบตลอดเกมก็ชนะได้ แต่จะยากขึ้นเรื่อยๆ ลองดูว่าทางไหนคุ้มกว่า</p>`},
  {t:"ตัวละครและเป้าหมายลับ",b:()=>`<p style="margin:0">ตอนเริ่มเกมแต่ละคนได้การ์ด 2 ใบ เกมจะให้ส่งเครื่องวนกันดูทีละคน</p>
-  <div class="mods"><div><span><b>ตัวละคร</b> ทุกคนเห็น</span><span>เริ่มเกมต่างกัน เช่น ติดหนักแต่รวย หรือเพิ่งเริ่มแต่จน</span></div><div><span><b>เป้าหมายลับ</b> ห้ามให้ใครเห็น</span><span>ทำได้ตอนจบ +${GOAL_PTS}</span></div></div>
+  <div class="mods"><div><span><b>ตัวละคร</b> ทุกคนเห็น</span><span>เริ่มเกมต่างกัน เช่น ติดหนักแต่รวย หรือเพิ่งเริ่มแต่จน</span></div><div><span><b>เป้าหมายลับ</b> ห้ามให้ใครเห็น</span><span>ทำได้ตอนจบ +3 ถึง +10 ตามความยาก</span></div></div>
   <div class="row">${CHARS.map(c=>`<span class="chip spot">${c.name}</span>`).join("")}</div>
   <p class="small" style="margin:0">ดูเป้าหมายลับของตัวเองซ้ำได้ด้วยปุ่ม "ดูเป้าหมายลับ" ตอนเริ่มตาของเรา ทางที่ดีที่สุดจะเปลี่ยนไปทุกเกม ขึ้นกับว่าได้การ์ดอะไร</p>`},
  {t:"หนึ่งเดือนเล่นยังไง",b:()=>`<div class="mods">
@@ -562,7 +562,7 @@ function rulesHTML(){return `<details><summary>กฎย่อ</summary><ul>
  <li>สูบต่อหน้าคนอื่น (ยกเว้นจุดสูบ) เสียความสุข 1 ต่อคน บุหรี่มวนให้เขาโรค +1</li>
  <li>สูบหมด 3 ซอง ระดับการติด +1</li>
  <li>โทเคนโรคครบ 3/6/9 จั่วการ์ดโรค</li>
- <li>ตัวละครทำให้เริ่มต่างกัน เป้าหมายลับทำได้ตอนจบ +6</li>
+ <li>ตัวละครทำให้เริ่มต่างกัน เป้าหมายลับทำได้ตอนจบ +3 ถึง +10</li>
  <li>สูบรวดได้ ช่องที่สองเป็นต้นไปทอย 1–2 = ไอ โรค +1 แล้วหยุด</li>
  <li>เลิกได้ 3 เดือน = โบนัส คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8 · ทุกสิ้นเดือนทอยต้านใจ</li></ul></details>`}
 function setupHTML(){return `<div class="setup">
@@ -577,7 +577,7 @@ function endHTML(){
  const ranked=[...S.players].sort((a,b)=>score(b)-score(a));
  return `<div class="setup" style="max-width:720px"><h2>จบปี · ${esc(ranked[0].name)} ชนะ</h2>
  <div style="overflow-x:auto"><table><thead><tr><th>ผู้เล่น</th><th>สถานะ</th><th class="r">ความสุข</th><th class="r">โบนัส</th><th class="r">โรค</th><th class="r">แต้ม</th></tr></thead><tbody>
- ${ranked.map(p=>`<tr><td><div style="color:${p.col};font-weight:600">${esc(p.name)}</div><div class="small">${p.char?p.char.name:""}</div><div class="small">${p.goal?`เป้าหมายลับ: ${p.goal.name} ${p.goalDone?"✓ +"+GOAL_PTS:"✗"}`:""}</div></td><td>${p.mode==="smoke"?`ยังสูบ ติดระดับ ${p.add}`:p.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"}</td><td class="r">${p.happy}</td><td class="r">${p.bonus}</td><td class="r">−${penalty(p)}</td><td class="r"><b>${score(p)}</b></td></tr>`).join("")}
+ ${ranked.map(p=>`<tr><td><div style="color:${p.col};font-weight:600">${esc(p.name)}</div><div class="small">${p.char?p.char.name:""}</div><div class="small">${p.goal?`เป้าหมายลับ: ${p.goal.name} ${p.goalDone?"✓ +"+p.goal.pts:"✗"}`:""}</div></td><td>${p.mode==="smoke"?`ยังสูบ ติดระดับ ${p.add}`:p.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"}</td><td class="r">${p.happy}</td><td class="r">${p.bonus}</td><td class="r">−${penalty(p)}</td><td class="r"><b>${score(p)}</b></td></tr>`).join("")}
  </tbody></table></div>
  <div class="small">${ranked.map(p=>p.dcards.length?`${esc(p.name)}: ${p.dcards.map(c=>c.name).join(", ")}`:"").filter(Boolean).join(" · ")||"ไม่มีใครป่วยเป็นโรคจากการ์ด"}</div>
  <button class="primary" id="againBtn">เล่นใหม่</button>
