@@ -235,25 +235,25 @@ async function tempt(p,reason){
  if(p.mode==="quit"&&p.qm>0)mods.push([`เลิกมาแล้ว ${p.qm} เดือน`,Math.min(p.qm,2)]);
  if(p.ny)mods.push(["ปณิธานปีใหม่",1]);
  if(isC(p,"warned"))mods.push(["หมอเตือนแล้ว",1]);
- if(p.med)mods.push(["ยาช่วยเลิกจากคลินิก",2]);
+ if(p.med)mods.push(["ยาช่วยเลิกจากคลินิก",1]);
  if(p.support>0)mods.push(["ครอบครัวสนับสนุน (ใช้แล้วหมด)",1]);
  if(p.loc&&S.phase==="act"&&(p.loc==="spot"||p.loc==="chill"))mods.push(["อยู่ในที่ที่มีคนสูบ",-1]);
  if(p.stress)mods.push(["เครียด",-1]);
  const givers=S.players.filter(o=>o!==p&&o.happy>=1);
  const body=`<p style="margin:0">${esc(reason)} ต้องทอยเต๋า + ตัวช่วย ให้ได้<b>มากกว่าความอยาก (${p.craving})</b> ถึงจะต้านได้</p>
  <div class="mods">${mods.length?mods.map(m=>`<div><span>${m[0]}</span><span class="num">${m[1]>0?"+":""}${m[1]}</span></div>`).join(""):"<div><span>ยังไม่มีตัวช่วย</span></div>"}</div>
- ${p.gum>0?`<label class="row"><input type="checkbox" id="useGum"> ใช้หมากฝรั่งนิโคติน +2 (เหลือ ${p.gum})</label>`:""}
+ ${p.gum>0?`<label class="row"><input type="checkbox" id="useGum"> ใช้หมากฝรั่งนิโคติน +1 (เหลือ ${p.gum})</label>`:""}
  ${givers.length?`<label class="label" for="enc">ให้ผู้เล่นอื่นช่วยให้กำลังใจ +1 (ผู้ให้เสียความสุข 1 ได้แต้มน้ำใจ 1)</label><select id="enc"><option value="">ไม่มี</option>${givers.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select>`:""}`;
  const r=await modal({title:"ทอยต้านใจ",who:p,body,buttons:[{label:"ทอยเต๋า",value:1,kind:"primary"}]});
  let total=mods.reduce((a,m)=>a+m[1],0);
  if(p.support>0)p.support--;
- if(r.form.useGum){p.gum--;total+=2}
+ if(r.form.useGum){p.gum--;total+=1}
  if(r.form.enc){const g=S.players[+r.form.enc];g.happy--;g.bonus++;total+=1;log(`${g.name} ให้กำลังใจ ${p.name}`)}
  const roll=d6();const sum=roll+total;const ok=sum>p.craving;
  let out,msg;
  if(ok){out="resist";msg=`ต้านไว้ได้ ${sum} มากกว่า ${p.craving}`;log(`${p.name} ต้านใจได้ (${reason})`)}
  else if(p.mode==="free"){p.st.lapsed=true;out="relapse";p.mode="smoke";setAdd(p,p.add+1);p.craving=clamp(p.craving+1,0,6);msg="กลับไปสูบเต็มตัว ระดับการติด +1";log(`${p.name} กลับไปสูบ`,"m")}
- else if(p.lapses===0){p.st.lapsed=true;out="lapse";p.lapses=1;p.lapsedM=true;p.qm=Math.max(0,p.qm-1);p.craving=clamp(p.craving+1,0,6);addDisease(p,1,"เผลอสูบ");msg="เผลอสูบไป 1 ครั้ง ยังอยู่ในโหมดเลิก แต่ตัวนับเดือนถอยหลัง 1 และพลาดอีกครั้งจะกลับไปสูบ";log(`${p.name} พลาด (lapse)`,"m")}
+ else if(p.lapses===0){p.st.lapsed=true;out="lapse";p.lapses=1;p.lapsedM=true;p.qm=0;p.craving=clamp(p.craving+1,0,6);addDisease(p,1,"เผลอสูบ");msg="เผลอสูบไป 1 ครั้ง ยังอยู่ในโหมดเลิก แต่ต้องนับเดือนใหม่ตั้งแต่ศูนย์ และพลาดอีกครั้งจะกลับไปสูบ";log(`${p.name} พลาด (lapse)`,"m")}
  else{out="relapse";p.mode="smoke";p.lapses=0;p.qm=0;setAdd(p,p.add+1);msg="พลาดครั้งที่สอง กลับไปสูบเหมือนเดิม ระดับการติด +1";log(`${p.name} กลับไปสูบ (relapse)`,"m")}
  render();
  await modal({title:ok?"ต้านไว้ได้":"แพ้ใจ",who:p,body:`<div class="row"><div class="die">${roll}</div><div><div class="num">${roll} ${total>=0?"+":"−"} ${Math.abs(total)} = ${sum} เทียบความอยาก ${p.craving}</div><div>${msg}</div></div></div>`,buttons:[{label:"ต่อ",value:1,kind:"primary"}]});
@@ -343,12 +343,12 @@ async function clinic(p){
  if(S.clinic>=2){await info("คิวเต็ม","คลินิกรับได้ 2 คิวต่อเดือน เดือนนี้เต็มแล้ว",p);return}
  const r=await modal({title:"คลินิก",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> · การ์ดโรคเป็นโรคเรื้อรัง รักษาไม่หาย</div>`,buttons:[
   {label:"รักษา: ลบโทเคนโรค 3 · 4 เหรียญ",value:"treat",disabled:p.money<4||p.disease===0},
-  {label:"ยาช่วยเลิก: ความอยาก −2, ทอย +2 ทั้งเดือน · 3 เหรียญ",value:"med",disabled:p.money<3},
+  {label:"ยาช่วยเลิก: ความอยาก −1, ทอย +1 ทั้งเดือน · 4 เหรียญ",value:"med",disabled:p.money<4},
   {label:"กลับ",value:"done"}]});
  if(r.v==="done")return;
  S.clinic++;
  if(r.v==="treat"){p.money-=4;p.disease=Math.max(0,p.disease-3);log(`${p.name} รักษา ลบโทเคนโรค 3`)}
- if(r.v==="med"){p.money-=3;p.med=true;p.craving=clamp(p.craving-2,0,6);log(`${p.name} รับยาช่วยเลิก`)}
+ if(r.v==="med"){p.money-=4;p.med=true;p.craving=clamp(p.craving-1,0,6);log(`${p.name} รับยาช่วยเลิก`)}
 }
 
 /* ---------- life events ---------- */
@@ -373,7 +373,7 @@ async function startMonth(){
   if(isM(6)&&p.disease>=5){p.happy-=2;log(`${p.name} ผลตรวจสุขภาพแย่ ความสุข −2`)}
  }
  render();
- await info(`เดือน${MONTHS[m-1]} · ${mc.t}`,`<div>${mc.d}</div><div class="small">ความอยากของทุกคนขยับตามโหมด: คนสูบ +1 · เลิกเดือนแรก +1 · เลิกเดือนที่สองค้าง · หลังจากนั้นลดลง 1</div>`);
+ await info(`เดือน${MONTHS[m-1]} · ${mc.t}`,`<div>${mc.d}</div><div class="small">ความอยากของทุกคนขยับตามโหมด: คนสูบ +1 · เลิกเดือนแรก +2 · เลิกเดือนที่สอง +1 · หลังจากนั้นลดลง 1</div>`);
  if(isM(4))for(const p of S.players)if(p.mode!=="smoke")await tempt(p,"สงกรานต์ ทุกวงมีคนสูบ");
 }
 async function endMonth(){
@@ -385,9 +385,12 @@ async function endMonth(){
   await e.f(p);
   if(p.mode!=="free"&&p.craving>=4){p.happy-=2;log(`${p.name} อาการถอน ความสุข −2`)}
   if(p.mode==="quit"){
+   await tempt(p,"ความอยากประจำเดือน คิดถึงบุหรี่ขึ้นมาเอง");
+  }
+  if(p.mode==="quit"){
    if(p.qm===0){p.happy--;log(`${p.name} เดือนแรกของการเลิก ทรมาน −1`)}
    if(!p.lapsedM){p.qm++;log(`${p.name} เลิกได้ ${p.qm} เดือน`)}
-   if(p.qm>=3){const qb=[12,9][S.quitters]??6;S.quitters++;p.mode="free";p.bonus+=qb;setAdd(p,p.add-2);p.add=Math.max(1,p.add);p.disease=Math.max(0,p.disease-2);p.craving=0;log(`${p.name} เลิกสำเร็จเป็นคนที่ ${S.quitters} โบนัส +${qb}`,"m");render();await info("เลิกสำเร็จ",`<div>เลิกสำเร็จเป็นคนที่ ${S.quitters} ได้โบนัส +${qb} ระดับการติดลดลง โรคลด 2 ความอยากเหลือ 0</div><div class="small">ยังเจอสิ่งยั่วใจได้ แต่ทอยได้ +3</div>`,p)}
+   if(p.qm>=3){const qb=[16,12][S.quitters]??8;S.quitters++;p.mode="free";p.bonus+=qb;setAdd(p,p.add-2);p.add=Math.max(1,p.add);p.disease=Math.max(0,p.disease-2);p.craving=0;log(`${p.name} เลิกสำเร็จเป็นคนที่ ${S.quitters} โบนัส +${qb}`,"m");render();await info("เลิกสำเร็จ",`<div>เลิกสำเร็จเป็นคนที่ ${S.quitters} ได้โบนัส +${qb} ระดับการติดลดลง โรคลด 2 ความอยากเหลือ 0</div><div class="small">ยังเจอสิ่งยั่วใจได้ แต่ทอยได้ +3</div>`,p)}
   }
   render();
  }
@@ -401,7 +404,7 @@ async function freeAction(kind){
  const p=S.players[S.cur];
  if(kind==="goal"){await showGoal(p,false);render();if(awaitLoc)focusLocs();return}
  if(kind==="gum"){p.gum--;p.craving=clamp(p.craving-1,0,6);log(`${p.name} เคี้ยวหมากฝรั่งนิโคติน`);render();return}
- if(kind==="quit"){const r=await modal({title:"ประกาศเลิกบุหรี่",who:p,body:`<div>ห้ามสูบตั้งแต่ตอนนี้ เดือนแรกความอยากยังขึ้นและทรมานเพิ่ม 1 เดือนที่สองความอยากค้าง จากนั้นค่อยลดลงเดือนละ 1</div><div>ผ่าน 3 เดือน = เลิกสำเร็จ โบนัส +${[12,9][S.quitters]??6} (คนแรก +12 คนที่สอง +9 ต่อจากนั้น +6) · เผลอครั้งแรกนับเป็นพลาด ครั้งที่สองกลับไปสูบ</div>${isM(1)?"<div><b>เดือนมกราคม: ได้ +1 ทอยต้านใจตลอดช่วงเลิก</b></div>":""}`,buttons:[{label:"เลิกเลย",value:1,kind:"primary"},{label:"ยังก่อน",value:0}]});
+ if(kind==="quit"){const r=await modal({title:"ประกาศเลิกบุหรี่",who:p,body:`<div>ห้ามสูบตั้งแต่ตอนนี้ เดือนแรกความอยาก +2 และทรมานเพิ่ม 1 เดือนที่สองความอยาก +1 จากนั้นค่อยลดลงเดือนละ 1</div><div>ผ่าน 3 เดือน = เลิกสำเร็จ โบนัส +${[16,12][S.quitters]??8} (คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8) · ทุกสิ้นเดือนต้องทอยต้านใจ 1 ครั้ง · เผลอครั้งแรกนับเป็นพลาด ครั้งที่สองกลับไปสูบ</div>${isM(1)?"<div><b>เดือนมกราคม: ได้ +1 ทอยต้านใจตลอดช่วงเลิก</b></div>":""}`,buttons:[{label:"เลิกเลย",value:1,kind:"primary"},{label:"ยังก่อน",value:0}]});
   if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m")}
   render(); if(awaitLoc)focusLocs();}
 }
@@ -478,10 +481,10 @@ const TUT=[
   <div class="row">${DISEASES.map(c=>`<span class="dcard">${c.name} −${c.pts}</span>`).join("")}</div>
   <p style="margin:0">คลินิกรับเดือนละ 2 คิว เลือกอย่างใดอย่างหนึ่ง: รักษา (ลบโทเคนโรค 3) หรือรับยาช่วยเลิก</p>`},
  {t:"การเลิกบุหรี่",b:()=>`<p style="margin:0">กด <b>ประกาศเลิก</b> ได้ตอนเริ่มตาของเรา ตั้งแต่นั้นห้ามสูบ</p>
-  <div class="mods"><div><span>เดือนแรก</span><span>ความอยาก +1 ทรมานเพิ่ม −1</span></div><div><span>เดือนที่สอง</span><span>ความอยากค้างอยู่ ไม่ลด</span></div><div><span>เดือนที่สามขึ้นไป</span><span>ความอยาก −1 ทุกเดือน</span></div><div><span>ผ่าน 3 เดือน</span><span><b>โบนัส คนแรก +12 · คนที่สอง +9 · ต่อจากนั้น +6</b> ติดลด 2 โรคลด 2</span></div></div>
+  <div class="mods"><div><span>เดือนแรก</span><span>ความอยาก +2 ทรมานเพิ่ม −1</span></div><div><span>เดือนที่สอง</span><span>ความอยาก +1</span></div><div><span>เดือนที่สามขึ้นไป</span><span>ความอยาก −1 ทุกเดือน</span></div><div><span>ผ่าน 3 เดือน</span><span><b>โบนัส คนแรก +16 · คนที่สอง +12 · ต่อจากนั้น +8</b> ติดลด 2 โรคลด 2</span></div></div>
   <p style="margin:0">เจอสิ่งยั่วใจ ต้องทอยเต๋า + ตัวช่วย ให้ <b>มากกว่า</b> ความอยาก</p>
-  <div class="mods"><div><span>เลิกมาแล้ว (สูงสุด +2), หมากฝรั่ง +2, ยาจากคลินิก +2, เพื่อนให้กำลังใจ +1</span><span></span></div><div><span>อยู่ที่ที่มีคนสูบ −1, เครียด −1</span><span></span></div></div>
-  <p class="small" style="margin:0">แพ้ครั้งแรก = พลาด ยังเลิกต่อได้ แต่ถอยไป 1 เดือน · แพ้ครั้งที่สอง = กลับไปสูบ ติด +1</p>`},
+  <div class="mods"><div><span>เลิกมาแล้ว (สูงสุด +2), หมากฝรั่ง +1, ยาจากคลินิก +1, เพื่อนให้กำลังใจ +1</span><span></span></div><div><span>อยู่ที่ที่มีคนสูบ −1, เครียด −1</span><span></span></div></div>
+  <p class="small" style="margin:0">ทุกสิ้นเดือนต้องทอยต้านใจ 1 ครั้งเสมอ · แพ้ครั้งแรก = พลาด ยังเลิกต่อได้ แต่นับเดือนใหม่ตั้งแต่ศูนย์ · แพ้ครั้งที่สอง = กลับไปสูบ ติด +1</p>`},
  {t:"เคล็ดลับก่อนเริ่ม",b:()=>`<div class="mods">
   <div><span>อย่าปล่อยให้ความอยากค้างโซนแดงตอนสิ้นเดือน</span></div>
   <div><span>ถ้าจะเลิก ลดความอยากก่อน ด้วยหมากฝรั่งหรือยาจากคลินิก</span></div>
@@ -561,7 +564,7 @@ function rulesHTML(){return `<details><summary>กฎย่อ</summary><ul>
  <li>โทเคนโรคครบ 3/6/9 จั่วการ์ดโรค</li>
  <li>ตัวละครทำให้เริ่มต่างกัน เป้าหมายลับทำได้ตอนจบ +6</li>
  <li>สูบรวดได้ ช่องที่สองเป็นต้นไปทอย 1–2 = ไอ โรค +1 แล้วหยุด</li>
- <li>เลิกได้ 3 เดือน = โบนัส คนแรก +12 คนที่สอง +9 ต่อจากนั้น +6</li></ul></details>`}
+ <li>เลิกได้ 3 เดือน = โบนัส คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8 · ทุกสิ้นเดือนทอยต้านใจ</li></ul></details>`}
 function setupHTML(){return `<div class="setup">
  <h2>เริ่มเกม</h2>
  <p style="margin:0">เล่นผลัดกันบนเครื่องเดียว 1–4 คน ทุกคนเริ่มแบบติดบุหรี่อยู่แล้ว ได้การ์ดตัวละครที่เริ่มไม่เหมือนกัน กับเป้าหมายลับคนละใบ ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด</p>
