@@ -177,6 +177,23 @@ const DISEASES=[
  {id:"copd",name:"ถุงลมโป่งพอง",pts:6}
 ];
 const CHILL=[{n:"ข้าวมันไก่เจ้าเด็ด",c:1,h:2},{n:"หมูกระทะกับเพื่อน",c:2,h:3},{n:"ดูหนังรอบดึก",c:3,h:4},{n:"ทริปทะเลบางแสน",c:5,h:7}];
+const CHARS=[
+ {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 แต่มีเงิน 12 บุหรี่ 2 ซอง และรู้มุมแอบสูบ สูบที่ที่ทำงานได้",set:p=>{p.add=3;p.craving=2;p.money=12;p.hand.push("cheap")}},
+ {id:"newbie",name:"เพิ่งเริ่มสูบ",d:"เริ่มความอยาก 0 แต่มีเงินแค่ 2 ไม่มีบุหรี่ และติดเร็ว สูบหมดทุก 2 ซองติด +1",set:p=>{p.add=2;p.craving=0;p.money=2;p.hand=[]}},
+ {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เริ่มความอยาก 3",set:p=>{p.craving=3}},
+ {id:"parent",name:"พ่อแม่ลูกอ่อน",d:"สูบที่บ้านไม่ได้ แต่พักที่บ้านได้โทเคนสนับสนุน +1 ด้วย",set:p=>{}},
+ {id:"social",name:"สายปาร์ตี้",d:"ชวนสูบสำเร็จได้ความสุข +2 แทน +1 แต่พักที่บ้านคนเดียวไม่ได้ความสุข",set:p=>{}},
+ {id:"warned",name:"หมอเตือนแล้ว",d:"เริ่มมีโทเคนโรค 2 แต่ทอยต้านใจ +1 เสมอ",set:p=>{p.disease=2}}
+];
+const GOALS=[
+ {id:"late",name:"เลิกช้าแต่ชัวร์",d:"ประกาศเลิกตั้งแต่เดือนมิถุนายนเป็นต้นไป และเลิกสำเร็จ",ok:p=>p.mode==="free"&&p.quitDeclared>=6},
+ {id:"inviter",name:"ตัวป่วน",d:"ชวนคนอื่นสูบสำเร็จ 3 ครั้ง (เขารับ หรือเขาแพ้ใจ)",ok:p=>p.st.inv>=3},
+ {id:"rich",name:"เก็บเงินเก่ง",d:"จบเกมมีเงิน 15 ขึ้นไป",ok:p=>p.money>=15},
+ {id:"healthy",name:"ปอดสะอาด",d:"จบเกมโดยไม่มีการ์ดโรคเลย",ok:p=>p.dcards.length===0},
+ {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้สักครั้ง",ok:p=>p.st.maxChain>=4},
+ {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",ok:p=>p.mode==="free"&&!p.st.lapsed}
+];
+const GOAL_PTS=6;
 const YIELD=[0,4,3,2,1,0];
 const PCOL=["var(--p1)","var(--p2)","var(--p3)","var(--p4)"];
 
@@ -189,7 +206,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 function newPlayer(i,name){return{id:i,name,col:PCOL[i],money:5,happy:0,bonus:0,craving:2,add:2,disease:0,dDrawn:0,dcards:[],
- mode:"smoke",qm:0,lapses:0,ny:false,lapsedM:false,med:false,support:0,gum:0,hand:["cheap"],active:null,vape:false,pods:[],apod:null,packsDone:0,loc:null}}
+ mode:"smoke",qm:0,lapses:0,ny:false,lapsedM:false,med:false,support:0,gum:0,hand:["cheap"],active:null,vape:false,pods:[],apod:null,packsDone:0,loc:null,char:null,goal:null,quitDeclared:0,st:{inv:0,maxChain:1,lapsed:false}}}
 function score(p){return p.happy+p.bonus-penalty(p)}
 function penalty(p){return p.dcards.reduce((a,c)=>a+c.pts,0)+p.disease}
 function log(t,cls){S.log.unshift({t,cls});if(S.log.length>160)S.log.pop()}
@@ -217,6 +234,7 @@ async function tempt(p,reason){
  if(p.mode==="free")mods.push(["เลิกสำเร็จแล้ว",3]);
  if(p.mode==="quit"&&p.qm>0)mods.push([`เลิกมาแล้ว ${p.qm} เดือน`,Math.min(p.qm,2)]);
  if(p.ny)mods.push(["ปณิธานปีใหม่",1]);
+ if(isC(p,"warned"))mods.push(["หมอเตือนแล้ว",1]);
  if(p.med)mods.push(["ยาช่วยเลิกจากคลินิก",2]);
  if(p.support>0)mods.push(["ครอบครัวสนับสนุน (ใช้แล้วหมด)",1]);
  if(p.loc&&S.phase==="act"&&(p.loc==="spot"||p.loc==="chill"))mods.push(["อยู่ในที่ที่มีคนสูบ",-1]);
@@ -234,8 +252,8 @@ async function tempt(p,reason){
  const roll=d6();const sum=roll+total;const ok=sum>p.craving;
  let out,msg;
  if(ok){out="resist";msg=`ต้านไว้ได้ ${sum} มากกว่า ${p.craving}`;log(`${p.name} ต้านใจได้ (${reason})`)}
- else if(p.mode==="free"){out="relapse";p.mode="smoke";setAdd(p,p.add+1);p.craving=clamp(p.craving+1,0,6);msg="กลับไปสูบเต็มตัว ระดับการติด +1";log(`${p.name} กลับไปสูบ`,"m")}
- else if(p.lapses===0){out="lapse";p.lapses=1;p.lapsedM=true;p.qm=Math.max(0,p.qm-1);p.craving=clamp(p.craving+1,0,6);addDisease(p,1,"เผลอสูบ");msg="เผลอสูบไป 1 ครั้ง ยังอยู่ในโหมดเลิก แต่ตัวนับเดือนถอยหลัง 1 และพลาดอีกครั้งจะกลับไปสูบ";log(`${p.name} พลาด (lapse)`,"m")}
+ else if(p.mode==="free"){p.st.lapsed=true;out="relapse";p.mode="smoke";setAdd(p,p.add+1);p.craving=clamp(p.craving+1,0,6);msg="กลับไปสูบเต็มตัว ระดับการติด +1";log(`${p.name} กลับไปสูบ`,"m")}
+ else if(p.lapses===0){p.st.lapsed=true;out="lapse";p.lapses=1;p.lapsedM=true;p.qm=Math.max(0,p.qm-1);p.craving=clamp(p.craving+1,0,6);addDisease(p,1,"เผลอสูบ");msg="เผลอสูบไป 1 ครั้ง ยังอยู่ในโหมดเลิก แต่ตัวนับเดือนถอยหลัง 1 และพลาดอีกครั้งจะกลับไปสูบ";log(`${p.name} พลาด (lapse)`,"m")}
  else{out="relapse";p.mode="smoke";p.lapses=0;p.qm=0;setAdd(p,p.add+1);msg="พลาดครั้งที่สอง กลับไปสูบเหมือนเดิม ระดับการติด +1";log(`${p.name} กลับไปสูบ (relapse)`,"m")}
  render();
  await modal({title:ok?"ต้านไว้ได้":"แพ้ใจ",who:p,body:`<div class="row"><div class="die">${roll}</div><div><div class="num">${roll} ${total>=0?"+":"−"} ${Math.abs(total)} = ${sum} เทียบความอยาก ${p.craving}</div><div>${msg}</div></div></div>`,buttons:[{label:"ต่อ",value:1,kind:"primary"}]});
@@ -253,7 +271,7 @@ function puff(p,kind){
  if(s.d)addDisease(p,s.d,kind==="cig"?"บุหรี่":"บุหรี่ไฟฟ้า");
  if(s.a)setAdd(p,p.add+s.a);
  a.pos++;
- if(a.pos>=pk.slots.length){if(kind==="cig"){p.active=null;p.packsDone++;if(p.packsDone%3===0)setAdd(p,p.add+1)}else{p.apod=null;p.podsDone=(p.podsDone||0)+1;if(p.podsDone%2===0)setAdd(p,p.add+1)}log(`${p.name} ${kind==="cig"?"สูบหมดซอง":"พ็อดหมด"}`)}
+ if(a.pos>=pk.slots.length){if(kind==="cig"){p.active=null;p.packsDone++;if(p.packsDone%(isC(p,"newbie")?2:3)===0)setAdd(p,p.add+1)}else{p.apod=null;p.podsDone=(p.podsDone||0)+1;if(p.podsDone%2===0)setAdd(p,p.add+1)}log(`${p.name} ${kind==="cig"?"สูบหมดซอง":"พ็อดหมด"}`)}
  else if(kind==="cig")p.active=a;else p.apod=a;
 }
 const canCig=p=>p.active||p.hand.length;
@@ -261,7 +279,7 @@ const canPod=p=>p.vape&&(p.apod||p.pods.length);
 
 async function smokeStep(p,loc){
  if(p.mode!=="smoke")return;
- const L=LOCS.find(l=>l.id===loc);const allowed=L.smoke!=="no";
+ const L=LOCS.find(l=>l.id===loc);const allowed=(L.smoke!=="no"||(loc==="work"&&isC(p,"veteran")))&&!(loc==="home"&&isC(p,"parent"));
  const opts=[];
  if(allowed&&canCig(p))opts.push({label:"สูบบุหรี่ 1 ช่อง",value:"cig",kind:"ember"});
  if(!opts.length)return;
@@ -280,6 +298,7 @@ async function smokeStep(p,loc){
   puff(p,r.v);n++;render();
  }
  if(n>1)log(`${p.name} สูบรวด ${n} ช่อง`);
+ p.st.maxChain=Math.max(p.st.maxChain,n);
  if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>addDisease(o,1,`ควันมือสองจาก ${p.name}`))}
  render();
  if((loc==="spot"||loc==="chill")&&others.length){
@@ -289,18 +308,18 @@ async function smokeStep(p,loc){
 }
 async function invite(p,o){
  log(`${p.name} ชวน ${o.name} สูบ`);
- if(o.mode!=="smoke"){const out=await tempt(o,`${p.name} ชวนสูบ`);if(out!=="resist"){p.happy++;log(`${p.name} ความสุข +1 (มีเพื่อนสูบด้วย)`)}render();return}
+ if(o.mode!=="smoke"){const out=await tempt(o,`${p.name} ชวนสูบ`);if(out!=="resist"){const b=isC(p,"social")?2:1;p.happy+=b;p.st.inv++;log(`${p.name} ความสุข +${b} (มีเพื่อนสูบด้วย)`)}render();return}
  const r=await modal({title:`${esc(p.name)} ชวนสูบด้วยกัน`,who:o,body:`<div>รับ: ได้ความสุข +1 ทั้งคู่ และสูบ 1 ช่อง${canCig(o)||canPod(o)?" จากของตัวเอง":" (เพื่อนแบ่งให้ โรค +1)"}</div><div>ปฏิเสธ: เสียความสุข 1 เพราะเกรงใจ</div>`,buttons:[{label:"รับ",value:1,kind:"ember"},{label:"ปฏิเสธ",value:0}]});
- if(r.v){if(canCig(o))puff(o,"cig");else if(canPod(o))puff(o,"pod");else{o.craving=clamp(o.craving-1,0,6);o.happy+=YIELD[o.add];addDisease(o,1,"บุหรี่ที่เพื่อนแบ่ง")}p.happy++;o.happy++;log(`${o.name} รับคำชวน`)}
+ if(r.v){if(canCig(o))puff(o,"cig");else if(canPod(o))puff(o,"pod");else{o.craving=clamp(o.craving-1,0,6);o.happy+=YIELD[o.add];addDisease(o,1,"บุหรี่ที่เพื่อนแบ่ง")}p.happy+=isC(p,"social")?2:1;o.happy++;p.st.inv++;log(`${o.name} รับคำชวน`)}
  else{o.happy--;log(`${o.name} ปฏิเสธ ความสุข −1`)}
  render();
 }
 
 /* ---------- places ---------- */
 async function doLoc(p,loc){
- if(loc==="home"){const h=1;p.happy+=h;log(`${p.name} พักที่บ้าน ความสุข +${h}`)}
- else if(loc==="work"){const m=3;p.money+=m;log(`${p.name} ทำงาน ได้เงิน +${m}`)}
- else if(loc==="spot"){const o=S.present.spot.filter(id=>id!==p.id).length;if(o){p.happy++;log(`${p.name} คุยกับเพื่อนที่จุดสูบ ความสุข +1`)}else log(`${p.name} มายืนที่จุดสูบคนเดียว`)}
+ if(loc==="home"){const h=isC(p,"social")?0:1;p.happy+=h;if(isC(p,"parent")&&p.support<2){p.support++;log(`${p.name} ลูกยิ้มให้ ได้โทเคนสนับสนุน`)}log(`${p.name} พักที่บ้าน ความสุข +${h}`)}
+ else if(loc==="work"){const m=isC(p,"office")?4:3;p.money+=m;log(`${p.name} ทำงาน ได้เงิน +${m}`)}
+ else if(loc==="spot"){const o=S.present.spot.filter(id=>id!==p.id).length;if(o){const b=1;p.happy+=b;log(`${p.name} คุยกับเพื่อนที่จุดสูบ ความสุข +${b}`)}else log(`${p.name} มายืนที่จุดสูบคนเดียว`)}
  else if(loc==="store")await shop(p);
  else if(loc==="chill")await chill(p);
  else if(loc==="clinic")await clinic(p);
@@ -375,18 +394,31 @@ async function endMonth(){
 }
 function freeActions(p){return `<div class="row">
  ${p.mode==="smoke"?`<button class="calm" data-fa="quit">ประกาศเลิก</button>`:""}
+ <button data-fa="goal">ดูเป้าหมายลับ</button>
  <button data-fa="gum" ${p.gum>0&&p.craving>0?"":"disabled"}>เคี้ยวหมากฝรั่ง (ความอยาก −1) · เหลือ ${p.gum}</button>
 </div>`}
 async function freeAction(kind){
  const p=S.players[S.cur];
+ if(kind==="goal"){await showGoal(p,false);render();if(awaitLoc)focusLocs();return}
  if(kind==="gum"){p.gum--;p.craving=clamp(p.craving-1,0,6);log(`${p.name} เคี้ยวหมากฝรั่งนิโคติน`);render();return}
  if(kind==="quit"){const r=await modal({title:"ประกาศเลิกบุหรี่",who:p,body:`<div>ห้ามสูบตั้งแต่ตอนนี้ เดือนแรกความอยากยังขึ้นและทรมานเพิ่ม 1 เดือนที่สองความอยากค้าง จากนั้นค่อยลดลงเดือนละ 1</div><div>ผ่าน 3 เดือน = เลิกสำเร็จ โบนัส +${[12,9][S.quitters]??6} (คนแรก +12 คนที่สอง +9 ต่อจากนั้น +6) · เผลอครั้งแรกนับเป็นพลาด ครั้งที่สองกลับไปสูบ</div>${isM(1)?"<div><b>เดือนมกราคม: ได้ +1 ทอยต้านใจตลอดช่วงเลิก</b></div>":""}`,buttons:[{label:"เลิกเลย",value:1,kind:"primary"},{label:"ยังก่อน",value:0}]});
-  if(r.v){p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m")}
+  if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m")}
   render(); if(awaitLoc)focusLocs();}
 }
 function focusLocs(){const b=document.querySelector(".loc.pick");if(b)b.focus()}
 
+function deal(){
+ const cs=[...CHARS].sort(()=>Math.random()-.5),gs=[...GOALS].sort(()=>Math.random()-.5);
+ S.players.forEach((p,i)=>{p.char=cs[i];p.goal=gs[i];p.char.set(p)});
+}
+const isC=(p,id)=>p.char&&p.char.id===id;
+async function showGoal(p,first){
+ await modal({title:first?`ส่งเครื่องให้ ${esc(p.name)}`:"เป้าหมายลับของคุณ",who:p,body:`<div><span class="label">ตัวละคร (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div><span class="label">เป้าหมายลับ (อย่าให้คนอื่นเห็น)</span><div><b>${p.goal.name}</b> · ${p.goal.d}</div><div class="small">ทำได้ตอนจบเกม ได้ +${GOAL_PTS}</div></div>`,buttons:[{label:first?"จำได้แล้ว ส่งต่อ":"ปิด",value:1,kind:"primary"}]});
+}
 async function runGame(){
+ if(!S.players[0].char)deal();
+ render();
+ for(const p of S.players)await showGoal(p,true);
  for(S.month=1;S.month<=12;S.month++){
   S.phase="start";await startMonth();S.phase="act";
   const n=S.players.length,order=[...Array(n)].map((_,i)=>(i+S.month-1)%n);
@@ -401,6 +433,7 @@ async function runGame(){
   }
   S.cur=-1;await endMonth();
  }
+ for(const p of S.players){p.goalDone=!!p.goal.ok(p);if(p.goalDone){p.bonus+=GOAL_PTS;log(`${p.name} ทำเป้าหมายลับสำเร็จ: ${p.goal.name} +${GOAL_PTS}`,"m")}}
  S.over=true;render();
 }
 
@@ -410,6 +443,10 @@ const TUT=[
  {t:"เป้าหมาย",b:()=>`<p style="margin:0">ทุกคนเป็นคนที่ติดบุหรี่อยู่แล้ว ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด ครบปีใครแต้มสูงสุดชนะ</p>
   <div class="mods"><div><span>ความสุข</span><span>+</span></div><div><span>โบนัส (เลิกสำเร็จ, ให้กำลังใจเพื่อน)</span><span>+</span></div><div><span>การ์ดโรค และโทเคนโรค (ตัวละ 1)</span><span>−</span></div></div>
   <p class="small" style="margin:0">จะสูบตลอดเกมก็ชนะได้ แต่จะยากขึ้นเรื่อยๆ ลองดูว่าทางไหนคุ้มกว่า</p>`},
+ {t:"ตัวละครและเป้าหมายลับ",b:()=>`<p style="margin:0">ตอนเริ่มเกมแต่ละคนได้การ์ด 2 ใบ เกมจะให้ส่งเครื่องวนกันดูทีละคน</p>
+  <div class="mods"><div><span><b>ตัวละคร</b> ทุกคนเห็น</span><span>เริ่มเกมต่างกัน เช่น ติดหนักแต่รวย หรือเพิ่งเริ่มแต่จน</span></div><div><span><b>เป้าหมายลับ</b> ห้ามให้ใครเห็น</span><span>ทำได้ตอนจบ +${GOAL_PTS}</span></div></div>
+  <div class="row">${CHARS.map(c=>`<span class="chip spot">${c.name}</span>`).join("")}</div>
+  <p class="small" style="margin:0">ดูเป้าหมายลับของตัวเองซ้ำได้ด้วยปุ่ม "ดูเป้าหมายลับ" ตอนเริ่มตาของเรา ทางที่ดีที่สุดจะเปลี่ยนไปทุกเกม ขึ้นกับว่าได้การ์ดอะไร</p>`},
  {t:"หนึ่งเดือนเล่นยังไง",b:()=>`<div class="mods">
   <div><span>1. เปิดการ์ดเดือน</span><span class="small">มีผลพิเศษทั้งเดือน</span></div>
   <div><span>2. ความอยากขยับเอง</span><span class="small">คนสูบ +1</span></div>
@@ -478,6 +515,7 @@ function boardHTML(p){
  else if(p.hand.length)cards.push(packCard(`ซองถัดไป: ${PACKS[p.hand[0]].name}`,p.hand[0],null,"ยังไม่จุด"));
  return `<section class="board" style="border-color:${p.col}" aria-label="กระดานของ ${esc(p.name)}">
  <div class="bhead"><h3 style="color:${p.col}">${esc(p.name)}</h3><span class="mode ${p.mode}">${modeTxt}</span></div>
+ ${p.char?`<div class="small"><b>${p.char.name}</b> · ${p.char.d}</div>`:""}
  <div class="stats">
   <div class="stat"><span class="label">ความสุข</span><b>${p.happy}</b></div>
   <div class="stat"><span class="label">เงิน</span><b>${p.money}</b></div>
@@ -511,7 +549,7 @@ function render(){
   ${p?boardHTML(p):S.players.map(boardHTML).join("")}
  </div>
  <aside>
-  <div class="panel"><h3>ผู้เล่น</h3><div class="plist">${S.players.map(o=>`<div class="pl"><span class="dot" style="background:${o.col}"></span><span>${esc(o.name)}</span><span class="sc" title="แต้มถ้าจบตอนนี้">${score(o)}</span><span class="sub">${o.mode==="smoke"?"สูบ":o.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"} · อยาก ${o.craving} · ติด ${o.add} · เงิน ${o.money} · โรค ${o.disease}${o.dcards.length?`+${o.dcards.length} การ์ด`:""}</span></div>`).join("")}</div><div class="small" style="margin-top:6px">แต้ม = ความสุข + โบนัส − (การ์ดโรค + โทเคนโรค)</div></div>
+  <div class="panel"><h3>ผู้เล่น</h3><div class="plist">${S.players.map(o=>`<div class="pl"><span class="dot" style="background:${o.col}"></span><span>${esc(o.name)}</span><span class="sc" title="แต้มถ้าจบตอนนี้">${score(o)}</span><span class="sub">${o.char?o.char.name+" · ":""}${o.mode==="smoke"?"สูบ":o.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"} · อยาก ${o.craving} · ติด ${o.add} · เงิน ${o.money} · โรค ${o.disease}${o.dcards.length?`+${o.dcards.length} การ์ด`:""}</span></div>`).join("")}</div><div class="small" style="margin-top:6px">แต้ม = ความสุข + โบนัส − (การ์ดโรค + โทเคนโรค)</div></div>
   <div class="panel"><h3>บันทึก</h3><div class="log" aria-live="polite">${S.log.slice(0,60).map(l=>`<div class="${l.cls||""}">${esc(l.t)}</div>`).join("")}</div></div>
   <div class="panel">${rulesHTML()}</div>
  </aside></div>`;
@@ -521,11 +559,12 @@ function rulesHTML(){return `<details><summary>กฎย่อ</summary><ul>
  <li>สูบต่อหน้าคนอื่น (ยกเว้นจุดสูบ) เสียความสุข 1 ต่อคน บุหรี่มวนให้เขาโรค +1</li>
  <li>สูบหมด 3 ซอง ระดับการติด +1</li>
  <li>โทเคนโรคครบ 3/6/9 จั่วการ์ดโรค</li>
+ <li>ตัวละครทำให้เริ่มต่างกัน เป้าหมายลับทำได้ตอนจบ +6</li>
  <li>สูบรวดได้ ช่องที่สองเป็นต้นไปทอย 1–2 = ไอ โรค +1 แล้วหยุด</li>
  <li>เลิกได้ 3 เดือน = โบนัส คนแรก +12 คนที่สอง +9 ต่อจากนั้น +6</li></ul></details>`}
 function setupHTML(){return `<div class="setup">
  <h2>เริ่มเกม</h2>
- <p style="margin:0">เล่นผลัดกันบนเครื่องเดียว 1–4 คน ทุกคนเริ่มแบบติดบุหรี่อยู่แล้ว ระดับการติด 2 ความอยาก 2 เงิน 5 และบุหรี่ 1 ซอง ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด</p>
+ <p style="margin:0">เล่นผลัดกันบนเครื่องเดียว 1–4 คน ทุกคนเริ่มแบบติดบุหรี่อยู่แล้ว ได้การ์ดตัวละครที่เริ่มไม่เหมือนกัน กับเป้าหมายลับคนละใบ ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด</p>
  <div><span class="label">จำนวนผู้เล่น</span><div class="seg" style="margin-top:4px">${[1,2,3,4].map(n=>`<button data-n="${n}" class="${n===setupN?"sel":""}">${n}</button>`).join("")}</div></div>
  ${[...Array(setupN)].map((_,i)=>`<div><label class="label" for="name${i}">ชื่อผู้เล่น ${i+1}</label><input id="name${i}" value="ผู้เล่น ${i+1}" maxlength="14"></div>`).join("")}
  <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button><button data-tut="1">สอนเล่นก่อน (2 นาที)</button></div>
@@ -535,7 +574,7 @@ function endHTML(){
  const ranked=[...S.players].sort((a,b)=>score(b)-score(a));
  return `<div class="setup" style="max-width:720px"><h2>จบปี · ${esc(ranked[0].name)} ชนะ</h2>
  <div style="overflow-x:auto"><table><thead><tr><th>ผู้เล่น</th><th>สถานะ</th><th class="r">ความสุข</th><th class="r">โบนัส</th><th class="r">โรค</th><th class="r">แต้ม</th></tr></thead><tbody>
- ${ranked.map(p=>`<tr><td style="color:${p.col};font-weight:600">${esc(p.name)}</td><td>${p.mode==="smoke"?`ยังสูบ ติดระดับ ${p.add}`:p.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"}</td><td class="r">${p.happy}</td><td class="r">${p.bonus}</td><td class="r">−${penalty(p)}</td><td class="r"><b>${score(p)}</b></td></tr>`).join("")}
+ ${ranked.map(p=>`<tr><td><div style="color:${p.col};font-weight:600">${esc(p.name)}</div><div class="small">${p.char?p.char.name:""}</div><div class="small">${p.goal?`เป้าหมายลับ: ${p.goal.name} ${p.goalDone?"✓ +"+GOAL_PTS:"✗"}`:""}</div></td><td>${p.mode==="smoke"?`ยังสูบ ติดระดับ ${p.add}`:p.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"}</td><td class="r">${p.happy}</td><td class="r">${p.bonus}</td><td class="r">−${penalty(p)}</td><td class="r"><b>${score(p)}</b></td></tr>`).join("")}
  </tbody></table></div>
  <div class="small">${ranked.map(p=>p.dcards.length?`${esc(p.name)}: ${p.dcards.map(c=>c.name).join(", ")}`:"").filter(Boolean).join(" · ")||"ไม่มีใครป่วยเป็นโรคจากการ์ด"}</div>
  <button class="primary" id="againBtn">เล่นใหม่</button>
