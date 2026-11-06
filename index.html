@@ -161,7 +161,7 @@ const MONTH_CARDS=[
 const LOCS=[
  {id:"home",name:"บ้าน",act:"พักผ่อน ความสุข +1 · ชาร์จใจ",smoke:"private",chip:"สูบได้ ส่วนตัว"},
  {id:"work",name:"ที่ทำงาน",act:"รับเงิน +3",smoke:"no",chip:"ห้ามสูบ"},
- {id:"store",name:"ร้านสะดวกซื้อ",act:"ซื้อบุหรี่ พ็อด หมากฝรั่ง",smoke:"no",chip:"ห้ามสูบ"},
+ {id:"store",name:"ร้านสะดวกซื้อ",act:"ซื้อบุหรี่ หมากฝรั่ง",smoke:"no",chip:"ห้ามสูบ"},
  {id:"spot",name:"จุดสูบหลังตึก",act:"พักกับเพื่อน ชวนสูบได้",smoke:"spot",chip:"จุดสูบ ไม่มีควันมือสอง"},
  {id:"chill",name:"ร้านนั่งชิล",act:"จ่าย 3 ได้ความสุข +4 · ชวนสูบได้",smoke:"yes",chip:"สูบได้ มีควันมือสอง"},
  {id:"clinic",name:"คลินิก",act:"รักษาโรค หรือรับยาช่วยเลิก (2 คิว/เดือน)",smoke:"no",chip:"ห้ามสูบ"}
@@ -264,7 +264,6 @@ async function smokeStep(p,loc){
  const L=LOCS.find(l=>l.id===loc);const allowed=L.smoke!=="no";
  const opts=[];
  if(allowed&&canCig(p))opts.push({label:"สูบบุหรี่ 1 ช่อง",value:"cig",kind:"ember"});
- if(canPod(p))opts.push({label:allowed?"สูดบุหรี่ไฟฟ้า 1 ช่อง":"แอบสูดบุหรี่ไฟฟ้า (เสี่ยงโดนจับ)",value:"pod",kind:"ember"});
  if(!opts.length)return;
  opts.push({label:"ไม่สูบ",value:"no"});
  const others=loc==="home"?[]:S.present[loc].filter(id=>id!==p.id).map(id=>S.players[id]);
@@ -282,7 +281,6 @@ async function smokeStep(p,loc){
  }
  if(n>1)log(`${p.name} สูบรวด ${n} ช่อง`);
  if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>addDisease(o,1,`ควันมือสองจาก ${p.name}`))}
- if(r.v==="pod"&&!allowed){const roll=d6();if(roll===1){p.money=Math.max(0,p.money-2);p.vape=false;p.apod=null;log(`${p.name} โดนจับบุหรี่ไฟฟ้า ปรับ 2 โดนยึดเครื่อง`,"m");render();await info("โดนจับ",`<div class="row"><div class="die">1</div><div>เสียเงิน 2 และโดนยึดเครื่อง ต้องซื้อใหม่ (ในไทยบุหรี่ไฟฟ้าผิดกฎหมาย)</div></div>`,p)}}
  render();
  if((loc==="spot"||loc==="chill")&&others.length){
   const r2=await modal({title:"ชวนใครสูบด้วยไหม",who:p,body:`<div class="small">ถ้าเขารับ ได้ความสุข +1 ทั้งคู่ ถ้าปฏิเสธเขาเสียความสุข 1 ถ้าเขากำลังเลิก เขาต้องทอยต้านใจ</div>`,buttons:[...others.map(o=>({label:`ชวน ${esc(o.name)}`,value:o.id})),{label:"ไม่ชวน",value:-1}]});
@@ -310,11 +308,11 @@ async function doLoc(p,loc){
 }
 async function shop(p){
  for(;;){render();
-  const items=[["cheap",`บุหรี่${PACKS.cheap.name} (4 ช่อง)`,2],["device","เครื่องบุหรี่ไฟฟ้า",4],["pod",`พ็อด${PACKS.pod.name} (ต้องมีเครื่อง)`,1],["gum","หมากฝรั่งนิโคติน",2]];
+  const items=[["cheap",`บุหรี่${PACKS.cheap.name} (4 ช่อง)`,2],["gum","หมากฝรั่งนิโคติน",2]];
   const r=await modal({title:"ร้านสะดวกซื้อ",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> เหรียญ</div>`,buttons:[...items.map(([k,n,c])=>({label:`${n} · ${c}`,value:k,disabled:p.money<c||(k==="device"&&p.vape)||(k==="pod"&&!p.vape)})),{label:"ออกจากร้าน",value:"done",kind:"primary"}]});
   if(r.v==="done")return;
   const c=items.find(i=>i[0]===r.v)[2];p.money-=c;
-  if(r.v==="cheap")p.hand.push(r.v);else if(r.v==="pod")p.pods.push("pod");else if(r.v==="device")p.vape=true;else p.gum++;
+  if(r.v==="cheap")p.hand.push(r.v);else p.gum++;
   log(`${p.name} ซื้อ${items.find(i=>i[0]===r.v)[1].split(" (")[0]}`);
  }
 }
@@ -430,10 +428,6 @@ const TUT=[
   <p style="margin:0">ขึ้นเองทุกเดือน สูบแล้วลด ถ้าสิ้นเดือนอยู่ในโซนแดง (4–6) = <b>อาการถอน ความสุข −2</b></p>
   <div><span class="label">ระดับการติด</span>${miniTrack(5,1,0,[1,2,3,4,5])}<div class="yield"><span>+4</span><span>+3</span><span>+2</span><span>+1</span><span>0</span></div></div>
   <p style="margin:0">ตัวเลขใต้ช่องคือความสุขที่ได้ต่อการสูบ 1 ช่อง ยิ่งติดหนัก สูบแล้วยิ่งไม่สุข แค่กันไม่ให้ทรมาน</p>`},
- {t:"บุหรี่ไฟฟ้า",b:()=>`<p style="margin:0">ซื้อเครื่องครั้งเดียว (4 เหรียญ) แล้วซื้อพ็อดถูกๆ (1 เหรียญ)</p>
-  <div class="stick">${PACKS.pod.slots.map((s,i)=>slotHTML(s,i,"")).join("")}</div>
-  <div class="mods"><div><span>สูดได้ทุกที่</span><span>แต่ในที่ห้ามสูบ แอบได้ครั้งเดียว สูบรวดไม่ได้ และทอยได้ 1 = โดนจับ ปรับ 2 ยึดเครื่อง</span></div><div><span>โรคน้อยกว่าบุหรี่มวน</span><span></span></div><div><span>พ็อดหมดทุก 2 อัน</span><span class="ic-a">ติด +1</span></div></div>
-  <p class="small" style="margin:0">สะดวกกว่า แต่ติดเร็วกว่ามาก</p>`},
  {t:"ยุ่งกับคนอื่น",b:()=>`<div class="mods">
   <div><span><b>ชวนสูบ</b> (จุดสูบ, ร้านนั่งชิล)</span><span></span></div>
   <div><span>เขารับ</span><span>ความสุข +1 ทั้งคู่</span></div>
@@ -482,7 +476,6 @@ function boardHTML(p){
  const cards=[];
  if(p.active)cards.push(packCard(`กำลังสูบ: ${PACKS[p.active.k].name}`,p.active.k,p.active,"ถ่านไฟอยู่ช่องที่ติด"));
  else if(p.hand.length)cards.push(packCard(`ซองถัดไป: ${PACKS[p.hand[0]].name}`,p.hand[0],null,"ยังไม่จุด"));
- if(p.vape){if(p.apod)cards.push(packCard(`บุหรี่ไฟฟ้า: ${PACKS.pod.name}`,"pod",p.apod,"พ็อดในเครื่อง"));else cards.push(`<div class="card"><h4><span>เครื่องบุหรี่ไฟฟ้า</span></h4><div class="small">${p.pods.length?"มีพ็อดพร้อมใส่":"ไม่มีพ็อด ต้องซื้อที่ร้านสะดวกซื้อ"}</div></div>`)}
  return `<section class="board" style="border-color:${p.col}" aria-label="กระดานของ ${esc(p.name)}">
  <div class="bhead"><h3 style="color:${p.col}">${esc(p.name)}</h3><span class="mode ${p.mode}">${modeTxt}</span></div>
  <div class="stats">
@@ -496,7 +489,7 @@ function boardHTML(p){
   <div><span class="label">ระดับการติด · ความสุขต่อการสูบ 1 ช่อง</span><div class="track">${ad}</div><div class="yield"><span>+4</span><span>+3</span><span>+2</span><span>+1</span><span>0, อยากเร็ว</span></div></div>
  </div>
  <div class="packs">${cards.join("")||'<div class="small">ไม่มีบุหรี่ในมือ</div>'}</div>
- <div class="row small">ในมือ: บุหรี่ ${p.hand.length} ซอง · พ็อด ${p.pods.length} · หมากฝรั่ง ${p.gum}${p.support?` · โทเคนสนับสนุน ${p.support}`:""}${p.med?" · ใช้ยาช่วยเลิกเดือนนี้":""}</div>
+ <div class="row small">ในมือ: บุหรี่ ${p.hand.length} ซอง · หมากฝรั่ง ${p.gum}${p.support?` · โทเคนสนับสนุน ${p.support}`:""}${p.med?" · ใช้ยาช่วยเลิกเดือนนี้":""}</div>
  ${p.dcards.length?`<div class="row">${p.dcards.map(c=>`<span class="dcard">${c.name} −${c.pts}</span>`).join("")}</div>`:""}
  ${S.phase==="act"&&S.players[S.cur]===p&&awaitLoc?freeActions(p):""}
  </section>`}
@@ -525,9 +518,8 @@ function render(){
 }
 function rulesHTML(){return `<details><summary>กฎย่อ</summary><ul>
  <li>12 เดือน เดือนละ 3 แอคชัน ทุกแอคชันเลือกสถานที่ 1 แห่ง แล้วสูบได้ 1 ช่องถ้าที่นั้นอนุญาต</li>
- <li>บุหรี่ไฟฟ้าสูดได้ทุกที่ แต่ในที่ห้ามสูบทอยได้ 1 = โดนจับ</li>
  <li>สูบต่อหน้าคนอื่น (ยกเว้นจุดสูบ) เสียความสุข 1 ต่อคน บุหรี่มวนให้เขาโรค +1</li>
- <li>สูบหมด 3 ซอง หรือพ็อดหมด 2 อัน ระดับการติด +1</li>
+ <li>สูบหมด 3 ซอง ระดับการติด +1</li>
  <li>โทเคนโรคครบ 3/6/9 จั่วการ์ดโรค</li>
  <li>สูบรวดได้ ช่องที่สองเป็นต้นไปทอย 1–2 = ไอ โรค +1 แล้วหยุด</li>
  <li>เลิกได้ 3 เดือน = โบนัส คนแรก +7 คนที่สอง +5 ต่อจากนั้น +3</li></ul></details>`}
