@@ -101,6 +101,16 @@ button.calm{border-color:var(--calm);color:var(--calm)}
 .turn .tk{width:40px;height:40px;border-radius:50%;background:var(--pc);flex:none;box-shadow:inset 0 -4px 0 rgba(0,0,0,.25),0 2px 4px rgba(0,0,0,.3);display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:18px}
 .turn .who{font-family:var(--font-display);font-size:22px;font-weight:700;line-height:1.1;color:var(--pc)}
 .turn .hint{font-size:13.5px;color:var(--muted)}
+.turn .hint.warnh{color:var(--danger);font-weight:600}
+.tip p{margin:0 0 8px}.tip p:last-child{margin:0}
+.formula{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:18px;background:var(--paper-2);border-radius:10px;padding:12px}
+.fv{display:inline-flex;gap:5px;align-items:center}.fv.good{color:var(--ember)}.fv.bad{color:var(--danger)}.fo{color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:8px}.steps div{display:flex;gap:10px;align-items:center}.steps div>b{width:30px;height:30px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;flex:none;font-family:var(--font-display)}
+.locrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.locrow span{background:var(--acc);color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;font-weight:600;display:flex;gap:6px;align-items:center}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.two div{background:var(--paper-2);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}.two div>b{font-family:var(--font-display);font-size:18px}
+@media (max-width:420px){.two{grid-template-columns:minmax(0,1fr)}.locrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.rules{display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:8px}.rules div{border-left:3px solid var(--line);padding-left:8px}
+.coachrow{display:flex;gap:8px;align-items:center;font-size:14px}.coachrow input{width:20px;height:20px;accent-color:var(--calm)}
 .pips{display:flex;gap:6px;align-items:center;margin-left:auto}
 .pips i{width:14px;height:14px;border-radius:50%;border:2px solid var(--pc);display:block}
 .pips i.done{background:var(--pc)}
@@ -353,7 +363,7 @@ function penalty(p){return p.dcards.reduce((a,c)=>a+c.pts,0)+p.disease}
 function log(t,cls){S.log.unshift({t,cls});if(S.log.length>160)S.log.pop()}
 function isM(i){return S.month===i}
 
-function addDisease(p,n,why){if(n<=0)return;p.disease+=n;log(`${p.name} โรค +${n} (${why})`);while(p.dDrawn<3&&Math.floor(p.disease/3)>p.dDrawn){p.dDrawn++;const c=DISEASES[rnd(4)];p.dcards.push({...c});log(`${p.name} ป่วยเป็น${c.name} (−${c.pts} แต้มตอนจบ)`,"m")}}
+function addDisease(p,n,why){if(n<=0)return;p.disease+=n;log(`${p.name} โรค +${n} (${why})`);while(p.dDrawn<3&&Math.floor(p.disease/3)>p.dDrawn){p.dDrawn++;const c=DISEASES[rnd(4)];p.dcards.push({...c});if(S.coach)(S.tipQ=S.tipQ||[]).push(["dcard",p.id]);log(`${p.name} ป่วยเป็น${c.name} (−${c.pts} แต้มตอนจบ)`,"m")}}
 function setAdd(p,v){const o=p.add;p.add=clamp(v,1,5);if(p.add>o)log(`${p.name} ระดับการติดขึ้นเป็น ${p.add}`);}
 
 /* ---------- modal ---------- */
@@ -387,6 +397,7 @@ async function tempt(p,reason){
  <div class="mods">${mods.length?mods.map(m=>`<div><span>${m[0]}</span><span class="num">${m[1]>0?"+":""}${m[1]}</span></div>`).join(""):"<div><span>ยังไม่มีตัวช่วย</span></div>"}</div>
  ${p.gum>0?`<label class="row"><input type="checkbox" id="useGum"> ใช้หมากฝรั่งนิโคติน +1 (เหลือ ${p.gum})</label>`:""}
  ${givers.length?`<label class="label" for="enc">ให้ผู้เล่นอื่นช่วยให้กำลังใจ +1 (ผู้ให้เสียความสุข 1 ได้แต้มน้ำใจ 1)</label><select id="enc"><option value="">ไม่มี</option>${givers.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select>`:""}`;
+ await coach("tempt",p);
  const r=await modal({title:"ทอยต้านใจ",who:p,body,buttons:[{label:"ทอยเต๋า",value:1,kind:"primary"}]});
  let total=mods.reduce((a,m)=>a+m[1],0);
  if(p.support>0)p.support--;
@@ -429,6 +440,7 @@ async function smokeStep(p,loc){
  if(!opts.length)return;
  opts.push({label:"ไม่สูบ",value:"no"});
  const others=loc==="home"?[]:S.present[loc].filter(id=>id!==p.id).map(id=>S.players[id]);
+ await coach("smoke",p);if(others.length&&loc!=="spot")await coach("crowd",p);
  const r=await modal({title:"สูบไหม",who:p,body:`<div>ความอยากตอนนี้ <b class="num">${p.craving}</b>/6 · สูบ 1 ช่องได้ความสุข <b class="num">+${YIELD[p.add]}</b> จากระดับการติด ${p.add}</div>${others.length&&loc!=="spot"?`<div class="small">มี ${others.map(o=>esc(o.name)).join(", ")} อยู่ด้วย ถ้าสูบตรงนี้จะเสียความสุข 1 ต่อคน${allowed?" และบุหรี่มวนทำให้เขาได้โรค +1":""}</div>`:""}`,buttons:opts});
  if(r.v==="no")return;
  puff(p,r.v);
@@ -436,6 +448,7 @@ async function smokeStep(p,loc){
  const more=()=>r.v==="cig"?canCig(p):canPod(p);
  let n=1;
  while(allowed&&more()){
+  await coach("chain",p);
   const c=await modal({title:"อีกมวนเดียว?",who:p,body:`<div>สูบไปแล้ว <b class="num">${n}</b> ช่องในแอคชันนี้ · ความอยาก <b class="num">${p.craving}</b>/6</div><div>สูบต่อได้ความสุขอีก แต่ต้องทอยเต๋าก่อน ได้ <b>1–2 = ไอ</b> โรค +1 และต้องหยุดทันที</div>`,buttons:[{label:"อีกมวนเดียว",value:1,kind:"ember"},{label:"พอแล้ว",value:0,kind:"primary"}]});
   if(!c.v)break;
   const roll=d6();
@@ -472,6 +485,7 @@ async function doLoc(p,loc){
  render();
 }
 async function shop(p){
+ await coach("store",p);
  for(;;){render();
   const items=[["cheap",`บุหรี่${PACKS.cheap.name} (4 ช่อง)`,2],["gum","หมากฝรั่งนิโคติน",2]];
   const r=await modal({title:"ร้านสะดวกซื้อ",who:p,body:`<div>เงินที่มี <b class="num">${p.money}</b> เหรียญ</div>`,buttons:[...items.map(([k,n,c])=>({label:`${n} · ${c}`,value:k,disabled:p.money<c||(k==="device"&&p.vape)||(k==="pod"&&!p.vape)})),{label:"ออกจากร้าน",value:"done",kind:"primary"}]});
@@ -520,6 +534,8 @@ async function startMonth(){
  }
  render();
  await info(`เดือน${MONTHS[m-1]} · ${mc.t}`,`<div>${mc.d}</div><div class="small">ความอยากของทุกคนขยับตามโหมด: คนสูบ +1 · เลิกเดือนแรก +2 · เลิกเดือนที่สอง +1 · หลังจากนั้นลดลง 1</div>`);
+ if(m===1)await Promise.all((NET.mode?S.players:[S.players[0]]).map(p=>coach("month",p)));
+ if(m===2)await Promise.all((NET.mode?S.players:[S.players[0]]).map(p=>coach("goal",p)));
  if(isM(4))for(const p of S.players)if(p.mode!=="smoke")await tempt(p,"สงกรานต์ ทุกวงมีคนสูบ");
 }
 async function endMonth(){
@@ -527,9 +543,10 @@ async function endMonth(){
  for(const p of S.players){
   const e=EVENTS[rnd(EVENTS.length)];
   render();
+  await coach("events",p);
   await info(`อีเวนต์ชีวิต: ${e.t}`,`<div>${e.d}</div>`,p);
-  await e.f(p);
-  if(p.mode!=="free"&&p.craving>=4){p.happy-=2;p.st.wd=(p.st.wd||0)+1;log(`${p.name} อาการถอน ความสุข −2`)}
+  await e.f(p);await flushTips();
+  if(p.mode!=="free"&&p.craving>=4){p.happy-=2;p.st.wd=(p.st.wd||0)+1;log(`${p.name} อาการถอน ความสุข −2`);render();await coach("withdraw",p)}
   if(p.mode==="quit"){
    await tempt(p,"ความอยากประจำเดือน คิดถึงบุหรี่ขึ้นมาเอง");
   }
@@ -551,7 +568,7 @@ async function freeAction(kind){
  if(kind==="goal"){await showGoal(p,false);render();if(awaitLoc)focusLocs();return}
  if(kind==="gum"){p.gum--;p.st.aid=1;p.craving=clamp(p.craving-1,0,6);log(`${p.name} เคี้ยวหมากฝรั่งนิโคติน`);render();return}
  if(kind==="quit"){const r=await modal({title:"ประกาศเลิกบุหรี่",who:p,body:`<div>ห้ามสูบตั้งแต่ตอนนี้ เดือนแรกความอยาก +2 และทรมานเพิ่ม 1 เดือนที่สองความอยาก +1 จากนั้นค่อยลดลงเดือนละ 1</div><div>ผ่าน 3 เดือน = เลิกสำเร็จ โบนัส +${[16,12][S.quitters]??8} (คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8) · ทุกสิ้นเดือนต้องทอยต้านใจ 1 ครั้ง · เผลอครั้งแรกนับเป็นพลาด ครั้งที่สองกลับไปสูบ</div>${isM(1)?"<div><b>เดือนมกราคม: ได้ +1 ทอยต้านใจตลอดช่วงเลิก</b></div>":""}`,buttons:[{label:"เลิกเลย",value:1,kind:"primary"},{label:"ยังก่อน",value:0}]});
-  if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m")}
+  if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m");render();await coach("quit",p)}
   render(); if(awaitLoc)focusLocs();}
 }
 function focusLocs(){const b=document.querySelector(".loc.pick");if(b)b.focus()}
@@ -587,9 +604,10 @@ async function runGame(){
    LOCS.forEach(l=>S.present[l.id]=[]);
    for(const i of order){
     S.cur=i;const p=S.players[i];render();
+    await coach("pick",p);if(p.mode!=="free"&&p.craving>=4)await coach("red",p);if(p.mode==="smoke"&&!p.active&&!p.hand.length)await coach("nocig",p);
     const loc=await new Promise(res=>{awaitLoc=res;if(NET.mode==="host"&&i!==NET.me)S.wait=`รอ ${p.name} เลือกสถานที่`;render();focusLocs()});S.wait="";
     awaitLoc=null;p.loc=loc;S.present[loc].push(p.id);p.st.loc=p.st.loc||{};p.st.loc[loc]=(p.st.loc[loc]||0)+1;if(S.present[loc].length>1){if(loc==="spot")p.st.wSpot=(p.st.wSpot||0)+1;if(loc==="chill")p.st.wChill=(p.st.wChill||0)+1}log(`${p.name} ไป${LOCS.find(l=>l.id===loc).name}`);render();
-    await doLoc(p,loc);await smokeStep(p,loc);render();
+    await doLoc(p,loc);await smokeStep(p,loc);await flushTips();render();
    }
   }
   S.cur=-1;await endMonth();
@@ -598,9 +616,45 @@ async function runGame(){
  S.over=true;render();
 }
 
+/* ---------- coach: short tips the first time something happens ---------- */
+const TIPS={
+ pick:{t:"เลือกสถานที่",b:()=>`<p>ทุกตา กดการ์ดสถานที่ 1 ใบ แล้วทำตามที่การ์ดบอก เดือนหนึ่งได้ไป 3 ที่</p><p>ป้ายใต้การ์ดบอกว่าที่นั้น<b>สูบได้ไหม</b> ถ้าสูบได้ เกมจะถามหลังทำเสร็จ</p><p class="small">ไม่รู้จะไปไหน ลอง <b>บ้าน</b> (ความสุข +1) หรือ <b>ที่ทำงาน</b> (เงิน +3) ก่อนก็ได้</p>`},
+ smoke:{t:"สูบดีไหม",b:()=>`<p>สูบ 1 ช่อง = <b>ความสุขขึ้น</b> และ<b>ความอยากลด</b></p><p>แต่บางช่องบนมวนมีไอคอน ${ico("virus")} = ได้โทเคนโรค ซึ่งหักแต้มตอนจบ ดูได้ที่มวนบุหรี่ในกระดานของคุณ</p>`},
+ chain:{t:"อีกมวนเดียว?",b:()=>`<p>สูบต่อในตาเดียวกันได้ ได้ความสุขเพิ่ม</p><p>แต่ทุกครั้งต้องทอยเต๋า ได้ <b>1 หรือ 2 = ไอ</b> โรค +1 แล้วต้องหยุด เสี่ยงประมาณ 1 ใน 3</p>`},
+ crowd:{t:"มีคนอยู่ด้วย",b:()=>`<p>ถ้าสูบตอนมีคนอื่นอยู่ที่เดียวกัน คุณ<b>เสียความสุข 1 ต่อคน</b> และเขาได้โรค +1 จากควันมือสอง</p><p class="small">ยกเว้นที่จุดสูบหลังตึก ที่นั่นสูบได้ไม่มีใครว่า</p>`},
+ month:{t:"ความอยากขึ้นเองทุกเดือน",b:()=>`<p>ต้นเดือน ความอยากของคนสูบ +1 เสมอ</p><p>ถ้า<b>สิ้นเดือนความอยากอยู่ช่องแดง (4–6)</b> จะมีอาการถอน ความสุข −2</p><p class="small">ลดความอยากได้ด้วยการสูบ เคี้ยวหมากฝรั่ง หรือยาจากคลินิก</p>`},
+ red:{t:"ระวัง ความอยากอยู่โซนแดง",b:()=>`<p>ถ้ายังอยู่ช่องแดงตอนสิ้นเดือน จะเสียความสุข 2</p><p class="small">ยังเหลือแอคชันในเดือนนี้ ลดได้ด้วยการสูบ หมากฝรั่ง หรือคลินิก</p>`},
+ nocig:{t:"บุหรี่หมดแล้ว",b:()=>`<p>ไม่มีบุหรี่เหลือในมือ ถ้าจะสูบต้องไป <b>ร้านสะดวกซื้อ</b> ก่อน ซองละ 2 เหรียญ</p><p class="small">หรือจะถือโอกาสนี้ลองเลิกก็ได้</p>`},
+ store:{t:"ร้านสะดวกซื้อ",b:()=>`<p>ซื้อได้หลายอย่างในตาเดียว จนกว่าจะกดออกจากร้าน</p><p class="small">ในร้านสูบไม่ได้</p>`},
+ withdraw:{t:"อาการถอน",b:()=>`<p>สิ้นเดือนแล้วความอยากยังอยู่ช่องแดง เลยเสียความสุข 2</p><p class="small">เดือนหน้าลองเหลือแอคชันไว้ลดความอยากก่อนสิ้นเดือน</p>`},
+ dcard:{t:"ได้การ์ดโรค",b:()=>`<p>โทเคนโรคครบ 3 แล้ว เลยจั่วการ์ดโรค 1 ใบ <b>ติดตัวจนจบเกม รักษาไม่หาย</b> หักแต้มตอนจบ</p><p>ครบ 6 และ 9 จะได้อีกใบ</p><p class="small">คลินิกลบโทเคนโรคได้ 3 อัน (ก่อนครบเลขถัดไป) แต่ลบการ์ดไม่ได้</p>`},
+ quit:{t:"เริ่มเลิกแล้ว",b:()=>`<p>ตั้งแต่นี้<b>สูบไม่ได้</b> ช่วงแรกความอยากจะขึ้นเร็ว แล้วค่อยลดลงตั้งแต่เดือนที่ 3</p><p>ทุกสิ้นเดือนต้อง<b>ทอยต้านใจ</b> ผ่านครบ 3 เดือน = เลิกสำเร็จ ได้โบนัสก้อนใหญ่</p><p class="small">ตัวช่วย: หมากฝรั่ง ยาจากคลินิก เพื่อนให้กำลังใจ</p>`},
+ tempt:{t:"ทอยต้านใจคืออะไร",b:()=>`<p>ทอยเต๋า 1 ลูก บวกตัวช่วย ถ้า<b>ได้มากกว่าความอยาก</b> = ต้านไว้ได้</p><p>แพ้ครั้งแรก = พลาด ยังเลิกต่อได้แต่นับเดือนใหม่ แพ้ครั้งที่สอง = กลับไปสูบ</p><p class="small">ความอยากยิ่งต่ำ ยิ่งต้านง่าย</p>`},
+ events:{t:"อีเวนต์ชีวิต",b:()=>`<p>สิ้นเดือน ทุกคนจั่วเหตุการณ์สุ่มคนละใบ บางใบดี บางใบทำให้อยากสูบ</p>`},
+ goal:{t:"อย่าลืมเป้าหมายลับ",b:()=>`<p>ทำได้ตอนจบเกมได้แต้มเพิ่ม +6 ถึง +12 กดปุ่ม <b>ดูเป้าหมายลับ</b> ในกระดานเพื่อดูอีกครั้งได้</p>`}
+};
+async function flushTips(){while(S&&S.tipQ&&S.tipQ.length){const [k,id]=S.tipQ.shift();await coach(k,S.players[id])}}
+async function coach(key,p){
+ if(!S||!S.coach)return;
+ S.tips=S.tips||{};
+ const who=NET.mode?p:null, sk=(NET.mode&&p?p.id+":":"")+key;
+ if(S.tips[sk])return;
+ if(NET.mode&&p&&S.coachOff&&S.coachOff[p.id])return;
+ S.tips[sk]=1;const tp=TIPS[key];
+ const r=await modal({title:`<span class="label" style="display:block;font-family:var(--font-body);color:var(--calm)">คำแนะนำ</span>${tp.t}`,who:who||undefined,body:`<div class="tip">${tp.b()}</div>`,buttons:[{label:"เข้าใจแล้ว",value:1,kind:"primary"},{label:"ปิดคำแนะนำ",value:0}]});
+ if(r&&r.v===0){if(NET.mode&&p){S.coachOff=S.coachOff||{};S.coachOff[p.id]=1}else S.coach=false}
+}
+function turnHint(p){
+ if(!p)return"";const h=[];
+ if(p.mode==="quit")h.push(`กำลังเลิก ห้ามสูบ · ผ่านไปแล้ว ${p.qm}/3 เดือน`);
+ if(p.mode==="smoke"&&!p.active&&!p.hand.length)h.push("บุหรี่หมด ซื้อได้ที่ร้านสะดวกซื้อ");
+ if(p.mode!=="free"&&p.craving>=4)h.push(`ความอยาก ${p.craving} อยู่โซนแดง ถ้ายังแดงตอนสิ้นเดือนจะเสียความสุข 2`);
+ return h.map(t=>`<div class="hint warnh">${esc(t)}</div>`).join("");
+}
+
 /* ---------- tutorial ---------- */
 function miniTrack(n,on,red,labels){return `<div class="track">${[...Array(n)].map((_,i)=>`<div class="cell ${red&&i>=red?"red":""} ${i===on?"on":""}">${i===on?"":(labels?labels[i]:i)}</div>`).join("")}</div>`}
-const TUT=[
+const TUT_FULL=[
  {t:"เป้าหมาย",b:()=>`<p style="margin:0">ทุกคนเป็นคนที่ติดบุหรี่อยู่แล้ว ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด ครบปีใครแต้มสูงสุดชนะ</p>
   <div class="mods"><div><span>ความสุข</span><span>+</span></div><div><span>โบนัส (เลิกสำเร็จ, ให้กำลังใจเพื่อน)</span><span>+</span></div><div><span>การ์ดโรค และโทเคนโรค (ตัวละ 1)</span><span>−</span></div></div>
   <p class="small" style="margin:0">แต้มเท่ากัน คนที่หักโรคน้อยกว่าชนะ ถ้ายังเท่า ดูเงินเหลือ</p>
@@ -652,16 +706,32 @@ const TUT=[
   <div><span>เงินที่ไม่ได้ใช้กับบุหรี่ เอาไปซื้อความสุขที่ร้านนั่งชิลได้</span></div></div>
   <p class="small" style="margin:0">เปิดหน้านี้ได้อีกตอนไหนก็ได้จากปุ่ม "สอนเล่น" ด้านบน</p>`}
 ];
-async function tutorial(){
- let i=0;
- for(;;){const st=TUT[i];
-  const r=await localModal({title:`<span class="label num" style="display:block;font-family:var(--font-body)">สอนเล่น ${i+1}/${TUT.length}</span>${st.t}`,body:st.b(),buttons:[
+const TUT=[
+ {t:"เกมนี้คืออะไร",b:()=>`<p style="margin:0">ทุกคนเป็น<b>คนติดบุหรี่</b> ใช้ชีวิต 12 เดือน ใครแต้มสูงสุดตอนจบชนะ</p>
+  <div class="formula"><span class="fv good">${ico("heart")}ความสุข</span><span class="fo">−</span><span class="fv bad">${ico("virus")}โรค</span><span class="fo">=</span><span class="fv">แต้ม</span></div>
+  <p style="margin:0">บุหรี่ให้ความสุขเร็วที่สุด แต่ก็ให้โรคด้วย เกมนี้คือการเลือกว่าจะแลกแค่ไหน</p>`},
+ {t:"แต่ละตาทำแค่นี้",b:()=>`<div class="steps"><div><b>1</b><span>กดเลือก<b>สถานที่</b> 1 แห่ง</span></div><div><b>2</b><span>ได้ผลตามที่การ์ดเขียน</span></div><div><b>3</b><span>ถ้าที่นั้นสูบได้ เลือกว่า<b>จะสูบไหม</b></span></div></div>
+  <div class="locrow">${LOCS.map(l=>`<span style="--acc:${LOC_STYLE[l.id][1]}">${ico(LOC_STYLE[l.id][0])}${l.name}</span>`).join("")}</div>
+  <p class="small" style="margin:0">เดือนละ 3 ตา ผลัดกันเล่นทีละคน</p>`},
+ {t:"ความอยาก",b:()=>`<div>${miniTrack(7,4,4)}</div>
+  <p style="margin:0">ความอยาก<b>ขึ้นเองทุกเดือน</b> สูบแล้วลด</p>
+  <p style="margin:0">ถ้า<b>สิ้นเดือนยังอยู่ช่องแดง</b> = ทรมาน ความสุข −2</p>
+  <p class="small" style="margin:0">นี่คือสิ่งที่บังคับให้ต้องสูบต่อ เหมือนคนติดบุหรี่จริง</p>`},
+ {t:"สูบต่อ หรือ เลิก",b:()=>`<div class="two"><div><b class="ic-h">สูบต่อ</b><span>ได้ความสุขทุกตา แต่โรคสะสม และยิ่งติดหนัก สูบแล้วยิ่งสุขน้อยลง</span></div><div><b class="ic-c">เลิก</b><span>กดปุ่ม "ประกาศเลิก" ช่วงแรกทรมาน ทุกสิ้นเดือนต้องทอยเต๋าต้านใจ รอดครบ 3 เดือนได้<b>โบนัสก้อนใหญ่</b></span></div></div>
+  <p style="margin:0">ที่เหลือ (ตัวละคร เป้าหมายลับ คลินิก ชวนเพื่อนสูบ) <b>เกมจะบอกตอนเจอครั้งแรก</b></p>`}
+];
+async function tutorial(full){
+ const L=full?TUT_FULL:TUT;let i=0;
+ for(;;){const st=L[i];const last=i===L.length-1;
+  const r=await localModal({title:`<span class="label num" style="display:block;font-family:var(--font-body)">${full?"กฎละเอียด":"สอนเล่น"} ${i+1}/${L.length}</span>${st.t}`,body:st.b(),buttons:[
    ...(i>0?[{label:"ย้อนกลับ",value:"prev"}]:[]),
-   i<TUT.length-1?{label:"ถัดไป",value:"next",kind:"primary"}:{label:"เข้าใจแล้ว",value:"close",kind:"primary"},
-   ...(i<TUT.length-1?[{label:"ข้าม",value:"close"}]:[])]});
-  if(r.v==="next")i++;else if(r.v==="prev")i--;else return;
+   !last?{label:"ถัดไป",value:"next",kind:"primary"}:{label:full?"ปิด":"พร้อมเล่น",value:"close",kind:"primary"},
+   ...(last&&!full?[{label:"อ่านกฎละเอียด",value:"full"}]:[]),
+   ...(!last?[{label:"ข้าม",value:"close"}]:[])]});
+  if(r.v==="next")i++;else if(r.v==="prev")i--;else if(r.v==="full"){full=true;return tutorial(true)}else return;
  }
 }
+
 
 /* ---------- render ---------- */
 const IC={
@@ -769,7 +839,7 @@ function renderCore(){
   </div>
   <div class="paper turn ${picking?"me":""}" style="--pc:${p?p.col:"var(--gold)"}">
    <span class="tk">${p?esc(p.name.slice(0,1)):ico("star")}</span>
-   <div style="min-width:0"><div class="label">${p?(NET.mode&&isMe?"ตาของคุณ":"ตาของ"):"สิ้นเดือน"}</div><div class="who">${p?esc(p.name):"อีเวนต์ชีวิต"}</div>${hint?`<div class="hint">${hint}</div>`:""}</div>
+   <div style="min-width:0"><div class="label">${p?(NET.mode&&isMe?"ตาของคุณ":"ตาของ"):"สิ้นเดือน"}</div><div class="who">${p?esc(p.name):"อีเวนต์ชีวิต"}</div>${hint?`<div class="hint">${hint}</div>`:""}${picking?turnHint(p):""}</div>
    ${p?`<div class="pips" aria-label="แอคชัน ${round} จาก 3">${[0,1,2].map(i=>`<i class="${i<round-1?"done":i===round-1?"cur":""}"></i>`).join("")}<span class="small" style="margin-left:4px">แอคชัน ${round}/3</span></div>`:""}
   </div>
  </div>
@@ -796,15 +866,16 @@ function fxDiff(){const layer=document.getElementById("fxLayer");if(!layer)retur
   FXPREV[k]=v})}
 function dieFaces(root){root.querySelectorAll(".die").forEach(d=>{const n=+d.textContent.trim();if(PIPS[n]){d.setAttribute("role","img");d.setAttribute("aria-label","ทอยได้ "+n);d.innerHTML=[...Array(9)].map((_,i)=>`<i class="${PIPS[n].includes(i)?"":"x"}"></i>`).join("")}})}
 
-function rulesHTML(){return `<details><summary>กฎย่อ</summary><ul>
- <li>12 เดือน เดือนละ 3 แอคชัน ทุกแอคชันเลือกสถานที่ 1 แห่ง แล้วสูบได้ 1 ช่องถ้าที่นั้นอนุญาต</li>
- <li>สูบต่อหน้าคนอื่น (ยกเว้นจุดสูบ) เสียความสุข 1 ต่อคน บุหรี่มวนให้เขาโรค +1</li>
- <li>สูบหมด 3 ซอง ระดับการติด +1</li>
- <li>โทเคนโรคครบ 3/6/9 จั่วการ์ดโรค</li>
- <li>ตัวละครทำให้เริ่มต่างกัน เป้าหมายลับจั่ว 2 เลือก 1 ทำได้ตอนจบ +6 ถึง +12</li>
- <li>สูบรวดได้ ช่องที่สองเป็นต้นไปทอย 1–2 = ไอ โรค +1 แล้วหยุด</li>
- <li>แต้มเท่ากัน: โรคน้อยกว่าชนะ แล้วดูเงินเหลือ</li>
- <li>เลิกได้ 3 เดือน = โบนัส คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8 · ทุกสิ้นเดือนทอยต้านใจ</li></ul></details>`}
+function rulesHTML(){return `<details><summary>กฎย่อ</summary>
+ <div class="rules">
+ <div><b>ทุกตา</b> เลือกสถานที่ 1 แห่ง ได้ผลตามการ์ด ถ้าที่นั้นสูบได้ เลือกว่าจะสูบไหม</div>
+ <div><b>สูบ</b> ความสุขขึ้น ความอยากลด บางช่องได้โรค · สูบต่อในตาเดียวกันได้ แต่ทอย 1–2 = ไอ โรค +1</div>
+ <div><b>สิ้นเดือน</b> ความอยากช่องแดง = ความสุข −2 · ทุกคนจั่วอีเวนต์ชีวิต</div>
+ <div><b>โรค</b> โทเคนครบ 3/6/9 ได้การ์ดโรค ติดตัวจนจบ</div>
+ <div><b>มีคนอยู่ด้วย</b> สูบต่อหน้าคนอื่น (ยกเว้นจุดสูบ) เสียความสุข 1 ต่อคน เขาได้โรค +1</div>
+ <div><b>เลิก</b> ห้ามสูบ ทอยต้านใจทุกสิ้นเดือน รอด 3 เดือน โบนัส +16 / +12 / +8</div>
+ <div><b>จบเกม</b> แต้ม = ความสุข + โบนัส − โรค · เท่ากันดูโรคน้อยกว่า แล้วเงินเหลือ</div>
+ </div><button data-tutfull="1" style="margin-top:8px">อ่านกฎละเอียด</button></details>`}
 function heroHTML(){return `<div class="hero"><h2>Just One More</h2><p>อีกมวนเดียว · ทุกคนเริ่มเกมแบบติดบุหรี่อยู่แล้ว ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด แต่ทุกความสุขจากควันมีราคาที่ต้องจ่าย</p></div>`}
 function setupHTML(){return `${heroHTML()}<div class="setups">
 <div class="setup">
@@ -812,7 +883,8 @@ function setupHTML(){return `${heroHTML()}<div class="setups">
  <p style="margin:0" class="small">ผลัดกันกดบนเครื่องเดียว 1–4 คน <b>สนุกที่สุดตอน 3–4 คน</b> แต่ละคนได้ตัวละครที่เริ่มไม่เหมือนกัน กับเป้าหมายลับคนละใบ</p>
  <div><span class="label">จำนวนผู้เล่น</span><div class="seg" style="margin-top:6px">${[1,2,3,4].map(n=>`<button data-n="${n}" class="${n===setupN?"sel":""}" aria-pressed="${n===setupN}">${n}</button>`).join("")}</div></div>
  ${[...Array(setupN)].map((_,i)=>`<div><label class="label" for="name${i}" style="color:${PCOL[i]}">ชื่อผู้เล่น ${i+1}</label><input id="name${i}" value="ผู้เล่น ${i+1}" maxlength="14"></div>`).join("")}
- <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button><button data-tut="1">สอนเล่นก่อน (2 นาที)</button></div>
+ <label class="coachrow"><input type="checkbox" id="coachChk" checked> มีคำแนะนำระหว่างเล่น (แนะนำสำหรับเกมแรก)</label>
+ <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button><button data-tut="1">สอนเล่นก่อน (1 นาที)</button></div>
 </div>
 <div class="setup">
  <h2>${ico("wifi")}เล่นออนไลน์</h2>
@@ -904,7 +976,7 @@ function snapshot(pid){
 function startOnline(){
  if(NET.lobby.length<2){setMsg("ต้องมีอย่างน้อย 2 คน");return}
  NET.started=true;
- S={quitters:0,players:NET.lobby.map(x=>newPlayer(x.pid,x.name)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false,wait:""};
+ S={quitters:0,players:NET.lobby.map(x=>newPlayer(x.pid,x.name)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false,wait:"",coach:true};
  runGame();
 }
 async function joinRoom(){
@@ -942,10 +1014,11 @@ function lobbyHTML(){
  </div>`}
 
 document.addEventListener("click",e=>{
+ if(e.target.closest("[data-tutfull]")&&!document.getElementById("modalRoot").innerHTML){tutorial(true);return}
  if(e.target.closest("[data-tut]")&&!document.getElementById("modalRoot").innerHTML){tutorial();return}
  const n=e.target.closest("[data-n]");if(n&&!S){setupN=+n.dataset.n;render();return}
  if(e.target.id==="startBtn"){const names=[...Array(setupN)].map((_,i)=>(document.getElementById("name"+i).value.trim()||`ผู้เล่น ${i+1}`));
-  S={quitters:0,players:names.map((nm,i)=>newPlayer(i,nm)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false};runGame();return}
+  S={quitters:0,players:names.map((nm,i)=>newPlayer(i,nm)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false,coach:!!(document.getElementById("coachChk")||{checked:true}).checked};runGame();return}
  if(e.target.closest("#dockBtn")){const m=document.getElementById("matArea");if(m)m.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});return}
  if(e.target.id==="hostBtn"){hostRoom();return}
  if(e.target.id==="joinBtn"){joinRoom();return}
