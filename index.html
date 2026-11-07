@@ -110,6 +110,24 @@ button.calm{border-color:var(--calm);color:var(--calm)}
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.two div{background:var(--paper-2);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;font-size:13.5px}.two div>b{font-family:var(--font-display);font-size:18px}
 @media (max-width:420px){.two{grid-template-columns:minmax(0,1fr)}.locrow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .rules{display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:8px}.rules div{border-left:3px solid var(--line);padding-left:8px}
+.learn{max-width:960px;margin:0 auto 18px;padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between;border-left:8px solid var(--calm)}
+.learn>div:first-child{display:flex;flex-direction:column}.learn b{font-family:var(--font-display);font-size:18px}
+#guideRoot{position:fixed;left:0;right:0;bottom:0;z-index:45;pointer-events:none;display:flex;justify-content:center;padding:0 12px max(12px,env(safe-area-inset-bottom,0px))}
+.gpanel{pointer-events:auto;background:var(--ink);color:var(--paper);border-radius:14px;box-shadow:0 14px 30px -8px rgba(0,0,0,.7);padding:12px 16px;max-width:560px;width:100%;display:flex;flex-direction:column;gap:8px}
+.gpanel p{margin:0;font-size:15.5px;line-height:1.5}
+.gpanel .label{color:var(--paper);opacity:.75}
+.gwho{display:flex;align-items:center;gap:8px}.gav{width:30px;height:30px;border-radius:50%;background:var(--calm);color:#fff;display:grid;place-items:center}.gav .ico{width:18px;height:18px}
+.gquit{margin-left:auto;background:transparent;color:var(--paper);border-color:rgba(255,255,255,.35);min-height:32px;padding:3px 10px;font-size:12.5px;font-weight:500}
+.gpanel button.primary{background:var(--paper);color:var(--ink);border-color:var(--paper);align-self:flex-end;min-width:120px}
+.gpanel button.primary:hover:not(:disabled){background:var(--paper-2);border-color:var(--paper-2);color:var(--ink)}
+.gquit:hover:not(:disabled){background:rgba(255,255,255,.12)!important}
+body.guiding main.wrap{padding-bottom:240px}
+body.guiding .dock{display:none}
+body.guiding .loc:disabled{opacity:.45}
+.gtarget{outline:4px solid var(--calm)!important;outline-offset:4px;border-radius:12px;position:relative;z-index:2}
+.gnote{display:flex;gap:8px;align-items:flex-start;background:var(--calm-soft);color:var(--ink);border-left:4px solid var(--calm);border-radius:8px;padding:8px 10px;font-size:14px}.gnote .ico{color:var(--calm);margin-top:3px}
+@media (prefers-reduced-motion:no-preference){.gtarget,.gpulse{animation:gp 1.2s ease-in-out infinite}@keyframes gp{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--calm) 35%,transparent)}}}
+.dlg .btns button.gpulse{outline:3px solid var(--calm);outline-offset:2px}
 .coachrow{display:flex;gap:8px;align-items:center;font-size:14px}.coachrow input{width:20px;height:20px;accent-color:var(--calm)}
 .pips{display:flex;gap:6px;align-items:center;margin-left:auto}
 .pips i{width:14px;height:14px;border-radius:50%;border:2px solid var(--pc);display:block}
@@ -286,6 +304,7 @@ tr.win td{background:color-mix(in srgb,var(--gold) 14%,transparent)}
 <main class="wrap" id="app"></main>
 <div id="dockRoot"></div>
 <div id="fxLayer" aria-hidden="true"></div>
+<div id="guideRoot"></div>
 <div id="modalRoot"></div>
 
 <script>
@@ -350,7 +369,7 @@ const PCOL=["var(--p1)","var(--p2)","var(--p3)","var(--p4)"];
 let S=null, setupN=3, awaitLoc=null;
 const NET={mode:null,me:null,code:null,peer:null,conns:{},host:null,lobby:[],pending:{},seq:0,msg:"",started:false};
 const rnd=n=>Math.floor(Math.random()*n);
-const d6=()=>1+rnd(6);
+const d6=()=>(S&&S.guide&&S.dice&&S.dice.length)?S.dice.shift():1+rnd(6);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const has=(p,id)=>p.dcards.some(c=>c.id===id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -369,6 +388,7 @@ function setAdd(p,v){const o=p.add;p.add=clamp(v,1,5);if(p.add>o)log(`${p.name} 
 /* ---------- modal ---------- */
 function localModal({title,who,body,buttons}){return new Promise(res=>{
  const root=document.getElementById("modalRoot");
+ let gn=null;if(GUIDE.on&&GUIDE.mq.length&&String(title).includes(GUIDE.mq[0].title)){gn=GUIDE.mq.shift();body=`<div class="gnote">${ico("hand")}<span>${gn.say}</span></div>`+(body||"");buttons=buttons.map(b=>({...b,disabled:b.disabled||(gn.allow!==undefined&&b.value!==gn.allow),kind:(gn.allow!==undefined&&b.value===gn.allow)?(b.kind||"")+" gpulse":b.kind}))}
  const wb=who?`<div class="whobar" style="background:${who.col}">${esc(who.name)}</div>`:"";
  root.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="dlg" style="${who?"--dc:"+who.col:""}">${wb}<h3 id="dlgT">${title}</h3><div class="body">${body||""}</div><div class="btns">${
   buttons.map((b,i)=>`<button data-i="${i}" class="${b.kind||""}" ${b.disabled?"disabled":""}>${b.label}</button>`).join("")}</div></div></div>`;
@@ -558,7 +578,7 @@ async function endMonth(){
   render();
  }
 }
-function freeActions(p){return `<div class="fa">
+function freeActions(p){if(S.guide)return GUIDE.loc&&GUIDE.loc.fa?`<div class="fa"><button class="calm gpulse" data-fa="quit">ประกาศเลิก</button></div>`:"";return `<div class="fa">
  ${p.mode==="smoke"?`<button class="calm" data-fa="quit">ประกาศเลิก</button>`:""}
  <button data-fa="goal">ดูเป้าหมายลับ</button>
  <button data-fa="gum" ${p.gum>0&&p.craving>0?"":"disabled"}>เคี้ยวหมากฝรั่ง (ความอยาก −1) · เหลือ ${p.gum}</button>
@@ -568,7 +588,7 @@ async function freeAction(kind){
  if(kind==="goal"){await showGoal(p,false);render();if(awaitLoc)focusLocs();return}
  if(kind==="gum"){p.gum--;p.st.aid=1;p.craving=clamp(p.craving-1,0,6);log(`${p.name} เคี้ยวหมากฝรั่งนิโคติน`);render();return}
  if(kind==="quit"){const r=await modal({title:"ประกาศเลิกบุหรี่",who:p,body:`<div>ห้ามสูบตั้งแต่ตอนนี้ เดือนแรกความอยาก +2 และทรมานเพิ่ม 1 เดือนที่สองความอยาก +1 จากนั้นค่อยลดลงเดือนละ 1</div><div>ผ่าน 3 เดือน = เลิกสำเร็จ โบนัส +${[16,12][S.quitters]??8} (คนแรก +16 คนที่สอง +12 ต่อจากนั้น +8) · ทุกสิ้นเดือนต้องทอยต้านใจ 1 ครั้ง · เผลอครั้งแรกนับเป็นพลาด ครั้งที่สองกลับไปสูบ</div>${isM(1)?"<div><b>เดือนมกราคม: ได้ +1 ทอยต้านใจตลอดช่วงเลิก</b></div>":""}`,buttons:[{label:"เลิกเลย",value:1,kind:"primary"},{label:"ยังก่อน",value:0}]});
-  if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m");render();await coach("quit",p)}
+  if(r.v){p.quitDeclared=S.month;p.mode="quit";p.qm=0;p.lapses=0;p.ny=isM(1);log(`${p.name} ประกาศเลิกบุหรี่`,"m");if(S.guide&&GUIDE.onQuit){GUIDE.loc=null;GUIDE.onQuit();return}render();await coach("quit",p)}
   render(); if(awaitLoc)focusLocs();}
 }
 function focusLocs(){const b=document.querySelector(".loc.pick");if(b)b.focus()}
@@ -652,6 +672,80 @@ function turnHint(p){
  return h.map(t=>`<div class="hint warnh">${esc(t)}</div>`).join("");
 }
 
+/* ---------- guided practice: one scripted month, the game says exactly what to press ---------- */
+const GUIDE={on:false,target:null,loc:null,mq:[],panel:null,onQuit:null};
+function guideApply(){
+ const root=document.getElementById("guideRoot");if(!root)return;
+ document.body.classList.toggle("guiding",GUIDE.on);
+ document.querySelectorAll(".gtarget").forEach(e=>e.classList.remove("gtarget"));
+ if(!GUIDE.on||!GUIDE.panel){root.innerHTML="";return}
+ const pn=GUIDE.panel;
+ root.innerHTML=`<div class="gpanel" role="status" aria-live="polite"><div class="gwho"><span class="gav">${ico("hand")}</span><span class="label">ผู้สอน · ขั้น ${pn.n}/${GUIDE_TOTAL}</span><button class="gquit" id="guideQuit">ออกจากบทฝึก</button></div><p>${pn.text}</p>${pn.next?`<button class="primary" id="guideNext">${pn.next}</button>`:""}</div>`;
+ if(GUIDE.target){const t=document.querySelector(GUIDE.target);if(t){t.classList.add("gtarget");if(GUIDE.scroll){GUIDE.scroll=false;const r=t.getBoundingClientRect();if(r.top<70||r.bottom>innerHeight-220)t.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"})}}}
+ const nb=document.getElementById("guideNext");if(nb&&!document.getElementById("modalRoot").innerHTML)nb.focus();
+}
+const GUIDE_TOTAL=15;let gStep=0;
+function gPanel(text,target,next){gStep++;GUIDE.panel={text,next,n:gStep};GUIDE.target=target||null;GUIDE.scroll=!!target;render()}
+function gSay(text,target){return new Promise(res=>{gPanel(text,target,"ถัดไป");GUIDE.nextRes=res})}
+function gLoc(text,allow,fa){return new Promise(res=>{GUIDE.loc={allow,fa};gPanel(text,fa?'[data-fa="quit"]':`.loc[data-loc="${allow}"]`);awaitLoc=res;render();if(!fa)focusLocs()})}
+function gModal(title,say,allow){GUIDE.mq.push({title,say,allow})}
+async function botGo(b,loc){S.cur=b.id;render();await sleep(700);b.loc=loc;S.present[loc].push(b.id);log(`${b.name} ไป${LOCS.find(l=>l.id===loc).name}`);await doLoc(b,loc);render();await sleep(400)}
+async function youGo(p,loc){awaitLoc=null;GUIDE.loc=null;p.loc=loc;S.present[loc].push(p.id);log(`${p.name} ไป${LOCS.find(l=>l.id===loc).name}`);GUIDE.panel=null;render();await doLoc(p,loc);await smokeStep(p,loc);render()}
+async function runGuide(){
+ gStep=0;GUIDE.on=true;GUIDE.mq=[];
+ const p=newPlayer(0,"คุณ"),b=newPlayer(1,"เพื่อนร่วมงาน");b.bot=true;
+ p.money=2;p.craving=3;b.happy=0;b.hand=["cheap","cheap"];
+ S={guide:true,quitters:0,players:[p,b],month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"act",over:false,dice:[2,5]};
+ LOCS.forEach(l=>S.present[l.id]=[]);log("บทฝึก: เดือนมกราคม","m");
+ try{
+ await gSay("ยินดีต้อนรับ บทฝึกนี้เล่นจริง 1 เดือน ใช้เวลาประมาณ 3 นาที ผมจะบอกทีละขั้นว่าต้องกดตรงไหน");
+ await gSay("นี่คือ<b>กระดานของคุณ</b> แต้มตอนจบคิดจาก <b>ความสุข</b> หักด้วย <b>โรค</b> ตอนนี้ทุกอย่างยังเป็น 0","#matArea .stats");
+ await gSay("นี่คือ<b>ความอยาก</b> ตอนนี้อยู่ที่ 3 ถ้า<b>สิ้นเดือน</b>ขึ้นไปถึง<b>ช่องแดง (4–6)</b> จะเสียความสุข 2","#matArea .trk");
+ p.craving=4;log("ต้นเดือน ความอยาก +1");
+ await gSay("ต้นเดือน ความอยากของคนสูบ<b>ขึ้นเอง +1</b> ตอนนี้อยู่ช่องแดงแล้ว ต้องหาทางลดลงก่อนสิ้นเดือน","#matArea .trk");
+ await gSay("นี่คือ<b>บุหรี่ในมือ</b> 1 ซองมี 4 ช่อง สูบทีละช่อง แต่ละช่องมีผลต่างกัน ช่องที่มีไอคอนไวรัสสีแดงจะได้โรค","#matArea .smoke");
+ // round 1
+ S.round=1;S.cur=0;
+ let loc=await gLoc("เงินคุณเหลือแค่ 2 ไปหาเงินก่อน กดการ์ด <b>ที่ทำงาน</b>","work");await youGo(p,loc);
+ await gSay("ได้เงิน +3 แต่ที่ทำงาน<b>สูบไม่ได้</b> ดูป้ายสีแดงใต้การ์ด","#matArea .stats");
+ await botGo(b,"spot");
+ await gSay("ตาของเพื่อน เขาไป<b>จุดสูบหลังตึก</b> เห็นหมากของเขาบนการ์ดไหม",'.loc[data-loc="spot"]');
+ // round 2
+ S.round=2;S.cur=0;
+ gModal("สูบไหม","กด <b>สูบบุหรี่ 1 ช่อง</b> ดูว่าความสุขกับความอยากเปลี่ยนยังไง","cig");
+ gModal("อีกมวนเดียว?","สูบต่อในตาเดียวกันได้ แต่ต้องทอยเต๋า ได้ 1–2 จะไอ ลองกด <b>อีกมวนเดียว</b> ดู",1);
+ gModal("ไอ!","ทอยได้ 2 เลยไอ ได้โรค +1 และต้องหยุดสูบ",1);
+ gModal("ชวนใครสูบด้วยไหม","ชวนเพื่อนสูบได้ ถ้าเขารับ ได้ความสุขทั้งคู่ รอบนี้กด <b>ไม่ชวน</b> ไปก่อน",-1);
+ loc=await gLoc("ไปหาเพื่อนกัน กดการ์ด <b>จุดสูบหลังตึก</b> ไปกับเพื่อนได้ความสุข +2","spot");await youGo(p,loc);
+ await gSay(`สูบแล้ว<b>ความสุขขึ้น</b> และ<b>ความอยากลดลง</b>จนพ้นช่องแดงแล้ว แต่การไอทำให้ได้โรค 1 อัน โรค<b>ครบ 3 จะได้การ์ดโรค</b>ติดตัวจนจบเกม`,"#matArea .stats");
+ await botGo(b,"home");
+ // round 3
+ S.round=3;S.cur=0;
+ gModal("ประกาศเลิกบุหรี่","กด <b>เลิกเลย</b>",1);
+ const q=gLoc("ทีนี้ลองอีกทาง กดปุ่ม <b>ประกาศเลิก</b> ในกระดานของคุณ",null,"quit");
+ await new Promise(r=>{GUIDE.onQuit=r});GUIDE.onQuit=null;
+ GUIDE.loc={allow:"home"};gPanel("เลิกแล้ว ตั้งแต่นี้<b>สูบไม่ได้</b> คนที่กำลังเลิก พักที่บ้านแล้วความอยากลด 1 กดการ์ด <b>บ้าน</b>",'.loc[data-loc="home"]');render();focusLocs();
+ loc=await q;await youGo(p,loc);
+ await botGo(b,"work");
+ // end of month
+ S.cur=-1;S.phase="end";
+ await gSay("หมดเดือนแล้ว สิ้นเดือนทุกคนจั่ว<b>อีเวนต์ชีวิต</b> คนละใบ");
+ await info("อีเวนต์ชีวิต: ครอบครัวบอกว่าเป็นห่วง","<div>ได้โทเคนสนับสนุน +1 ช่วยทอยครั้งหน้า คนที่เลิกอยู่ได้ความสุข +1</div>",p);
+ p.support++;p.happy++;log("คุณได้กำลังใจจากครอบครัว");render();
+ await gSay(`ความอยากของคุณอยู่ที่ ${p.craving} ไม่ถึงช่องแดง เลย<b>ไม่มีอาการถอน</b>`,"#matArea .trk");
+ gModal("ทอยต้านใจ",`คนที่กำลังเลิกต้อง<b>ทอยต้านใจทุกสิ้นเดือน</b> เต๋า + ตัวช่วย ต้องได้<b>มากกว่าความอยาก</b> กด <b>ทอยเต๋า</b>`,1);
+ gModal("ต้านไว้ได้","ต้านได้ ถ้าแพ้ครั้งแรกยังเลิกต่อได้ แต่นับเดือนใหม่ แพ้ครั้งที่สองจะกลับไปสูบ",1);
+ await tempt(p,"ความอยากประจำเดือน คิดถึงบุหรี่ขึ้นมาเอง");
+ p.happy--;p.qm=1;log("เดือนแรกของการเลิก ทรมาน −1 · เลิกได้ 1 เดือน");render();
+ await gSay("เดือนแรกของการเลิกทรมาน ความสุข −1 แต่ผ่านไป 1 เดือนแล้ว รอด<b>ครบ 3 เดือน</b>ได้<b>โบนัส +16</b> สำหรับคนแรกที่ทำได้","#matArea .mh");
+ GUIDE.panel=null;render();
+ const r=await localModal({title:"จบบทฝึก",body:`<p style="margin:0">แค่นี้ก็เล่นเป็นแล้ว เกมจริงเล่น 12 เดือน มี<b>ตัวละคร</b>กับ<b>เป้าหมายลับ</b>เพิ่ม และเกมจะเตือนตอนเจอเรื่องใหม่ครั้งแรก</p><p class="small" style="margin:0">ตัดสินใจเอง สูบต่อ หรือเลิก ทางไหนคุ้มกว่าขึ้นกับสถานการณ์</p>`,buttons:[{label:"เริ่มเกมจริง",value:"go",kind:"primary"},{label:"ฝึกอีกรอบ",value:"again"}]});
+ guideEnd();
+ if(r.v==="again")return runGuide();
+ } catch(e){if(e!=="quit")throw e}
+}
+function guideEnd(){GUIDE.on=false;GUIDE.panel=null;GUIDE.target=null;GUIDE.loc=null;GUIDE.mq=[];awaitLoc=null;S=null;document.getElementById("modalRoot").innerHTML="";render()}
+
 /* ---------- tutorial ---------- */
 function miniTrack(n,on,red,labels){return `<div class="track">${[...Array(n)].map((_,i)=>`<div class="cell ${red&&i>=red?"red":""} ${i===on?"on":""}">${i===on?"":(labels?labels[i]:i)}</div>`).join("")}</div>`}
 const TUT_FULL=[
@@ -726,9 +820,10 @@ async function tutorial(full){
   const r=await localModal({title:`<span class="label num" style="display:block;font-family:var(--font-body)">${full?"กฎละเอียด":"สอนเล่น"} ${i+1}/${L.length}</span>${st.t}`,body:st.b(),buttons:[
    ...(i>0?[{label:"ย้อนกลับ",value:"prev"}]:[]),
    !last?{label:"ถัดไป",value:"next",kind:"primary"}:{label:full?"ปิด":"พร้อมเล่น",value:"close",kind:"primary"},
+   ...(last&&!full&&(!S||S.over)?[{label:"ลองฝึกเล่น",value:"guide"}]:[]),
    ...(last&&!full?[{label:"อ่านกฎละเอียด",value:"full"}]:[]),
    ...(!last?[{label:"ข้าม",value:"close"}]:[])]});
-  if(r.v==="next")i++;else if(r.v==="prev")i--;else if(r.v==="full"){full=true;return tutorial(true)}else return;
+  if(r.v==="next")i++;else if(r.v==="prev")i--;else if(r.v==="full"){full=true;return tutorial(true)}else if(r.v==="guide"){return runGuide()}else return;
  }
 }
 
@@ -817,7 +912,7 @@ function dockHTML(p){if(!p)return"";const hot=p.craving>=4;
  <span class="dv"><b>${p.hand.length+(p.active?1:0)}</b>ซอง</span>
  </button>`}
 
-function render(){renderCore();fxDiff();if(NET.mode==="host")netSync()}
+function render(){renderCore();fxDiff();guideApply();if(NET.mode==="host")netSync()}
 function renderCore(){
  const app=document.getElementById("app");
  const dockRoot=document.getElementById("dockRoot");
@@ -826,7 +921,7 @@ function renderCore(){
  const p=S.cur>=0?S.players[S.cur]:null,m=S.month,mc=MONTH_CARDS[m-1];
  const picking=!!awaitLoc&&(NET.mode!=="host"||S.cur===NET.me);
  const me=NET.mode&&NET.me!=null&&S.players[NET.me]?S.players[NET.me]:null;
- const shown=me?[me]:p?[p]:S.players;
+ const shown=S.guide?[S.players[0]]:me?[me]:p?[p]:S.players;
  const isMe=p&&(!NET.mode||p.id===NET.me);
  const hint=picking?"เลือกสถานที่ 1 แห่ง":NET.mode&&S.wait?esc(S.wait):p?"":"ทอยต้านใจและอีเวนต์ชีวิต";
  const round=Math.min(S.round,3);
@@ -843,7 +938,7 @@ function renderCore(){
    ${p?`<div class="pips" aria-label="แอคชัน ${round} จาก 3">${[0,1,2].map(i=>`<i class="${i<round-1?"done":i===round-1?"cur":""}"></i>`).join("")}<span class="small" style="margin-left:4px">แอคชัน ${round}/3</span></div>`:""}
   </div>
  </div>
- <div class="a-locs"><div class="locs">${LOCS.map(l=>{const [ic,acc]=LOC_STYLE[l.id];const full=l.id==="clinic"&&S.clinic>=2;return `<button class="loc ${picking?"pick":"wait"} ${full?"full":""}" data-loc="${l.id}" style="--acc:${acc}" ${picking&&!full?"":"disabled"}>
+ <div class="a-locs"><div class="locs">${LOCS.map(l=>{const [ic,acc]=LOC_STYLE[l.id];const full=l.id==="clinic"&&S.clinic>=2;return `<button class="loc ${picking?"pick":"wait"} ${full?"full":""}" data-loc="${l.id}" style="--acc:${acc}" ${picking&&!full&&(!S.guide||(GUIDE.loc&&GUIDE.loc.allow===l.id))?"":"disabled"}>
    <span class="lh">${ico(ic)}<span class="nm">${l.name}</span></span>
    <span class="lb"><span class="act">${l.act}${l.id==="clinic"?` · ใช้ไป ${S.clinic}/2`:""}</span><span class="chip ${l.smoke}">${l.chip}</span>
    <span class="pawns">${(S.present[l.id]||[]).map(id=>`<span class="pawn" style="background:${S.players[id].col}" title="${esc(S.players[id].name)}">${esc(S.players[id].name.slice(0,1))}</span>`).join("")}</span></span></button>`}).join("")}</div></div>
@@ -877,14 +972,15 @@ function rulesHTML(){return `<details><summary>กฎย่อ</summary>
  <div><b>จบเกม</b> แต้ม = ความสุข + โบนัส − โรค · เท่ากันดูโรคน้อยกว่า แล้วเงินเหลือ</div>
  </div><button data-tutfull="1" style="margin-top:8px">อ่านกฎละเอียด</button></details>`}
 function heroHTML(){return `<div class="hero"><h2>Just One More</h2><p>อีกมวนเดียว · ทุกคนเริ่มเกมแบบติดบุหรี่อยู่แล้ว ใช้ชีวิต 12 เดือนให้มีความสุขที่สุด แต่ทุกความสุขจากควันมีราคาที่ต้องจ่าย</p></div>`}
-function setupHTML(){return `${heroHTML()}<div class="setups">
+function setupHTML(){return `${heroHTML()}<div class="learn paper"><div><b>เล่นครั้งแรก?</b><span class="small">ลองฝึกเล่น 1 เดือน มีคนพาทำทีละขั้น ประมาณ 3 นาที</span></div><div class="row"><button class="primary" data-guide="1">ฝึกเล่นแบบมีคนพา</button><button data-tut="1">อ่านสรุป 4 หน้า</button></div></div>
+<div class="setups">
 <div class="setup">
  <h2>${ico("users")}เล่นเครื่องเดียว</h2>
  <p style="margin:0" class="small">ผลัดกันกดบนเครื่องเดียว 1–4 คน <b>สนุกที่สุดตอน 3–4 คน</b> แต่ละคนได้ตัวละครที่เริ่มไม่เหมือนกัน กับเป้าหมายลับคนละใบ</p>
  <div><span class="label">จำนวนผู้เล่น</span><div class="seg" style="margin-top:6px">${[1,2,3,4].map(n=>`<button data-n="${n}" class="${n===setupN?"sel":""}" aria-pressed="${n===setupN}">${n}</button>`).join("")}</div></div>
  ${[...Array(setupN)].map((_,i)=>`<div><label class="label" for="name${i}" style="color:${PCOL[i]}">ชื่อผู้เล่น ${i+1}</label><input id="name${i}" value="ผู้เล่น ${i+1}" maxlength="14"></div>`).join("")}
  <label class="coachrow"><input type="checkbox" id="coachChk" checked> มีคำแนะนำระหว่างเล่น (แนะนำสำหรับเกมแรก)</label>
- <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button><button data-tut="1">สอนเล่นก่อน (1 นาที)</button></div>
+ <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button></div>
 </div>
 <div class="setup">
  <h2>${ico("wifi")}เล่นออนไลน์</h2>
@@ -1020,6 +1116,9 @@ document.addEventListener("click",e=>{
  if(e.target.id==="startBtn"){const names=[...Array(setupN)].map((_,i)=>(document.getElementById("name"+i).value.trim()||`ผู้เล่น ${i+1}`));
   S={quitters:0,players:names.map((nm,i)=>newPlayer(i,nm)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false,coach:!!(document.getElementById("coachChk")||{checked:true}).checked};runGame();return}
  if(e.target.closest("#dockBtn")){const m=document.getElementById("matArea");if(m)m.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});return}
+ if(e.target.id==="guideNext"&&GUIDE.nextRes){const r=GUIDE.nextRes;GUIDE.nextRes=null;GUIDE.panel=null;r();return}
+ if(e.target.id==="guideQuit"){guideEnd();return}
+ if(e.target.closest("[data-guide]")&&!document.getElementById("modalRoot").innerHTML){if(S&&!S.over&&!S.guide)return;runGuide();return}
  if(e.target.id==="hostBtn"){hostRoom();return}
  if(e.target.id==="joinBtn"){joinRoom();return}
  if(e.target.id==="startOnlineBtn"&&NET.mode==="host"&&!NET.started){startOnline();return}
