@@ -186,11 +186,11 @@ const CHARS=[
  {id:"warned",name:"หมอเตือนแล้ว",d:"เริ่มมีโทเคนโรค 1 เงิน 3 (หมดไปกับค่าหมอ) แต่ทอยต้านใจ +1 เสมอ",set:p=>{p.disease=1;p.money=3}}
 ];
 const GOALS=[
- {id:"mentor",name:"พี่เลี้ยง",d:"ให้กำลังใจคนอื่นตอนทอยต้านใจ 4 ครั้ง",pts:6,ok:p=>(p.st.enc||0)>=4},
- {id:"inviter",name:"ตัวป่วน",d:"ชวนคนที่กำลังเลิกจนเขาแพ้ใจ ให้ได้สักครั้ง",pts:6,ok:p=>(p.st.broke||0)>=1},
- {id:"rich",name:"เก็บเงินเก่ง",d:"จบเกมมีเงิน 15 ขึ้นไป",pts:12,ok:p=>p.money>=15},
- {id:"healthy",name:"ปอดสะอาด",d:"จบเกมมีการ์ดโรคไม่เกิน 1 ใบ",pts:8,ok:p=>p.dcards.length<=1},
- {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้ 3 ครั้ง",pts:8,ok:p=>(p.st.c4||0)>=3},
+ {id:"mentor",name:"พี่เลี้ยง",d:"ให้กำลังใจคนอื่นตอนทอยต้านใจ 12 ครั้ง",pts:8,ok:p=>(p.st.enc||0)>=12},
+ {id:"inviter",name:"ตัวป่วน",d:"ชวนคนที่กำลังเลิกให้สูบ ให้ได้สักครั้ง (เขาจะต้านได้หรือไม่ก็ได้)",pts:6,ok:p=>(p.st.tq||0)>=1},
+ {id:"calm",name:"ใจเย็น",d:"ไม่เคยมีอาการถอนตอนสิ้นเดือนเลยทั้งเกม",pts:7,ok:p=>!(p.st.wd||0)},
+ {id:"healthy",name:"ปอดสะอาด",d:"จบเกมโดยไม่มีการ์ดโรคเลย",pts:10,ok:p=>p.dcards.length===0},
+ {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้ 2 ครั้ง",pts:8,ok:p=>(p.st.c4||0)>=2},
  {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",pts:11,ok:p=>p.mode==="free"&&!p.st.lapsed}
 ];
 const GOAL_PTS=6;
@@ -309,7 +309,7 @@ async function smokeStep(p,loc){
 }
 async function invite(p,o){
  log(`${p.name} ชวน ${o.name} สูบ`);
- if(o.mode!=="smoke"){const out=await tempt(o,`${p.name} ชวนสูบ`);if(out!=="resist"){const b=isC(p,"social")?2:1;p.happy+=b;p.st.inv++;p.st.broke=(p.st.broke||0)+1;log(`${p.name} ความสุข +${b} (มีเพื่อนสูบด้วย)`)}render();return}
+ if(o.mode!=="smoke"){p.st.tq=(p.st.tq||0)+1;const out=await tempt(o,`${p.name} ชวนสูบ`);if(out!=="resist"){const b=isC(p,"social")?2:1;p.happy+=b;p.st.inv++;p.st.broke=(p.st.broke||0)+1;log(`${p.name} ความสุข +${b} (มีเพื่อนสูบด้วย)`)}render();return}
  const r=await modal({title:`${esc(p.name)} ชวนสูบด้วยกัน`,who:o,body:`<div>รับ: ได้ความสุข +1 ทั้งคู่ และสูบ 1 ช่อง${canCig(o)||canPod(o)?" จากของตัวเอง":" (เพื่อนแบ่งให้ โรค +1)"}</div><div>ปฏิเสธ: เสียความสุข 1 เพราะเกรงใจ</div>`,buttons:[{label:"รับ",value:1,kind:"ember"},{label:"ปฏิเสธ",value:0}]});
  if(r.v){if(canCig(o))puff(o,"cig");else if(canPod(o))puff(o,"pod");else{o.craving=clamp(o.craving-1,0,6);o.happy+=YIELD[o.add];addDisease(o,1,"บุหรี่ที่เพื่อนแบ่ง")}p.happy+=isC(p,"social")?2:1;o.happy++;p.st.inv++;log(`${o.name} รับคำชวน`)}
  else{o.happy--;log(`${o.name} ปฏิเสธ ความสุข −1`)}
@@ -384,7 +384,7 @@ async function endMonth(){
   render();
   await info(`อีเวนต์ชีวิต: ${e.t}`,`<div>${e.d}</div>`,p);
   await e.f(p);
-  if(p.mode!=="free"&&p.craving>=4){p.happy-=2;log(`${p.name} อาการถอน ความสุข −2`)}
+  if(p.mode!=="free"&&p.craving>=4){p.happy-=2;p.st.wd=(p.st.wd||0)+1;log(`${p.name} อาการถอน ความสุข −2`)}
   if(p.mode==="quit"){
    await tempt(p,"ความอยากประจำเดือน คิดถึงบุหรี่ขึ้นมาเอง");
   }
