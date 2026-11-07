@@ -202,6 +202,7 @@ const YIELD=[0,4,3,2,1,0];
 const PCOL=["var(--p1)","var(--p2)","var(--p3)","var(--p4)"];
 
 let S=null, setupN=3, awaitLoc=null;
+const NET={mode:null,me:null,code:null,peer:null,conns:{},host:null,lobby:[],pending:{},seq:0,msg:"",started:false};
 const rnd=n=>Math.floor(Math.random()*n);
 const d6=()=>1+rnd(6);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -220,7 +221,7 @@ function addDisease(p,n,why){if(n<=0)return;p.disease+=n;log(`${p.name} โร�
 function setAdd(p,v){const o=p.add;p.add=clamp(v,1,5);if(p.add>o)log(`${p.name} ระดับการติดขึ้นเป็น ${p.add}`);}
 
 /* ---------- modal ---------- */
-function modal({title,who,body,buttons}){return new Promise(res=>{
+function localModal({title,who,body,buttons}){return new Promise(res=>{
  const root=document.getElementById("modalRoot");
  const wb=who?`<div class="whobar" style="background:${who.col}">${esc(who.name)}</div>`:"";
  root.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="dlgT"><div class="dlg">${wb}<h3 id="dlgT">${title}</h3><div class="body">${body||""}</div><div class="btns">${
@@ -229,6 +230,7 @@ function modal({title,who,body,buttons}){return new Promise(res=>{
  btns.forEach(el=>el.addEventListener("click",()=>{const b=buttons[+el.dataset.i];const form={};root.querySelectorAll("input,select").forEach(inp=>{form[inp.id]=inp.type==="checkbox"?inp.checked:inp.value});root.innerHTML="";res({v:b.value,form})}));
  const first=[...btns].find(b=>!b.disabled);if(first)first.focus();
 })}
+function modal(o){if(NET.mode==="host"){if(o.who&&o.who.id!==NET.me)return remotePrompt(o.who.id,o);if(!o.who)netNotice(o)}return localModal(o)}
 const info=(title,body,who)=>modal({title,body,who,buttons:[{label:"ตกลง",value:1,kind:"primary"}]});
 
 /* ---------- temptation ---------- */
@@ -252,6 +254,7 @@ async function tempt(p,reason){
  let total=mods.reduce((a,m)=>a+m[1],0);
  if(p.support>0)p.support--;
  if(r.form.useGum){p.gum--;p.st.aid=1;total+=1}
+ if(r.form.enc&&NET.mode){const g0=S.players[+r.form.enc];const ok=await modal({title:`${esc(p.name)} ขอกำลังใจ`,who:g0,body:`<div>${esc(p.name)} กำลังทอยต้านใจ ถ้ายอมให้กำลังใจ คุณเสียความสุข 1 ได้แต้มน้ำใจ 1 และเขาทอย +1</div>`,buttons:[{label:"ให้กำลังใจ",value:1,kind:"primary"},{label:"ไม่ให้",value:0}]});if(!ok.v){r.form.enc="";log(`${g0.name} ไม่ได้ให้กำลังใจ ${p.name}`)}}
  if(r.form.enc){const g=S.players[+r.form.enc];g.happy--;g.bonus++;g.st.enc=(g.st.enc||0)+1;total+=1;log(`${g.name} ให้กำลังใจ ${p.name}`)}
  const roll=d6();const sum=roll+total;const ok=sum>p.craving;
  let out,msg;
@@ -422,19 +425,23 @@ function deal(){
 }
 const isC=(p,id)=>p.char&&p.char.id===id;
 async function showGoal(p,first){
- await modal({title:first?`ส่งเครื่องให้ ${esc(p.name)}`:"เป้าหมายลับของคุณ",who:p,body:`<div><span class="label">ตัวละคร (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div><span class="label">เป้าหมายลับ (อย่าให้คนอื่นเห็น)</span><div><b>${p.goal.name}</b> · ${p.goal.d}</div><div class="small">ทำได้ตอนจบเกม ได้ +${p.goal.pts}</div></div>`,buttons:[{label:first?"จำได้แล้ว ส่งต่อ":"ปิด",value:1,kind:"primary"}]});
+ await modal({title:first&&!NET.mode?`ส่งเครื่องให้ ${esc(p.name)}`:"เป้าหมายลับของคุณ",who:p,body:`<div><span class="label">ตัวละคร (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div><span class="label">เป้าหมายลับ (อย่าให้คนอื่นเห็น)</span><div><b>${p.goal.name}</b> · ${p.goal.d}</div><div class="small">ทำได้ตอนจบเกม ได้ +${p.goal.pts}</div></div>`,buttons:[{label:first?"จำได้แล้ว ส่งต่อ":"ปิด",value:1,kind:"primary"}]});
+}
+async function pickGoal(p,opts){
+ const r=await modal({title:`${NET.mode?"":"ส่งเครื่องให้ "+esc(p.name)+" · "}เลือกเป้าหมายลับ`,who:p,body:`<div><span class="label">ตัวละครของคุณ (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div class="small">จั่วเป้าหมายลับได้ 2 ใบ เลือกเก็บ 1 ใบ อย่าให้คนอื่นเห็น</div>${opts.map(g=>`<div class="mods"><div><b>${g.name} · +${g.pts}</b></div><div><span>${g.d}</span></div></div>`).join("")}`,buttons:opts.map(g=>({label:`เก็บ ${g.name}`,value:g.id,kind:"primary"}))});
+ p.goal=GOALS.find(g=>g.id===r.v)||opts[0];
 }
 async function runGame(){
  if(!S.players[0].char)deal();
  render();
+ if(NET.mode&&S.players.some(o=>!o.goal)){const pool=[...GOALS].sort(()=>Math.random()-.5);await Promise.all(S.players.map((p,i)=>pickGoal(p,pool.slice(i*2,i*2+2))));render()}
  for(const p of S.players){
   if(!p.goal){
    const taken=S.players.map(o=>o.goal&&o.goal.id).filter(Boolean);
    const opts=GOALS.filter(g=>!taken.includes(g.id)).sort(()=>Math.random()-.5).slice(0,2);
-   const r=await modal({title:`ส่งเครื่องให้ ${esc(p.name)} · เลือกเป้าหมายลับ`,who:p,body:`<div><span class="label">ตัวละครของคุณ (ทุกคนเห็น)</span><div><b>${p.char.name}</b> · ${p.char.d}</div></div><div class="small">จั่วเป้าหมายลับได้ 2 ใบ เลือกเก็บ 1 ใบ อย่าให้คนอื่นเห็น</div>${opts.map(g=>`<div class="mods"><div><b>${g.name} · +${g.pts}</b></div><div><span>${g.d}</span></div></div>`).join("")}`,buttons:opts.map(g=>({label:`เก็บ ${g.name}`,value:g.id,kind:"primary"}))});
-   p.goal=GOALS.find(g=>g.id===r.v);
+   await pickGoal(p,opts);
   }
-  await showGoal(p,false);
+  if(!NET.mode)await showGoal(p,false);
  }
  for(S.month=1;S.month<=12;S.month++){
   S.phase="start";await startMonth();S.phase="act";
@@ -443,7 +450,7 @@ async function runGame(){
    LOCS.forEach(l=>S.present[l.id]=[]);
    for(const i of order){
     S.cur=i;const p=S.players[i];render();
-    const loc=await new Promise(res=>{awaitLoc=res;render();focusLocs()});
+    const loc=await new Promise(res=>{awaitLoc=res;if(NET.mode==="host"&&i!==NET.me)S.wait=`รอ ${p.name} เลือกสถานที่`;render();focusLocs()});S.wait="";
     awaitLoc=null;p.loc=loc;S.present[loc].push(p.id);p.st.loc=p.st.loc||{};p.st.loc[loc]=(p.st.loc[loc]||0)+1;if(S.present[loc].length>1){if(loc==="spot")p.st.wSpot=(p.st.wSpot||0)+1;if(loc==="chill")p.st.wChill=(p.st.wChill||0)+1}log(`${p.name} ไป${LOCS.find(l=>l.id===loc).name}`);render();
     await doLoc(p,loc);await smokeStep(p,loc);render();
    }
@@ -511,7 +518,7 @@ const TUT=[
 async function tutorial(){
  let i=0;
  for(;;){const st=TUT[i];
-  const r=await modal({title:`<span class="label num" style="display:block;font-family:var(--font-body)">สอนเล่น ${i+1}/${TUT.length}</span>${st.t}`,body:st.b(),buttons:[
+  const r=await localModal({title:`<span class="label num" style="display:block;font-family:var(--font-body)">สอนเล่น ${i+1}/${TUT.length}</span>${st.t}`,body:st.b(),buttons:[
    ...(i>0?[{label:"ย้อนกลับ",value:"prev"}]:[]),
    i<TUT.length-1?{label:"ถัดไป",value:"next",kind:"primary"}:{label:"เข้าใจแล้ว",value:"close",kind:"primary"},
    ...(i<TUT.length-1?[{label:"ข้าม",value:"close"}]:[])]});
@@ -550,21 +557,22 @@ function boardHTML(p){
  ${S.phase==="act"&&S.players[S.cur]===p&&awaitLoc?freeActions(p):""}
  </section>`}
 
-function render(){
+function render(){renderCore();if(NET.mode==="host")netSync()}
+function renderCore(){
  const app=document.getElementById("app");
- if(!S){app.innerHTML=setupHTML();return}
+ if(!S){app.innerHTML=NET.mode?lobbyHTML():setupHTML();return}
  if(S.over){app.innerHTML=endHTML();return}
  const p=S.cur>=0?S.players[S.cur]:null,m=S.month,mc=MONTH_CARDS[m-1];
- const picking=!!awaitLoc;
+ const picking=!!awaitLoc&&(NET.mode!=="host"||S.cur===NET.me);
  app.innerHTML=`<div class="layout"><div style="min-width:0">
   <div class="strip">
    <div class="month"><span class="label num">เดือน ${m}/12 · แอคชัน ${Math.min(S.round,3)}/3</span><h2>${MONTHS[m-1]} · ${mc.t}</h2><div class="small">${mc.d}</div></div>
-   <div class="turnbox" style="background:${p?p.col:"var(--drab)"}"><span class="label">${p?"ตาของ":"สิ้นเดือน"}</span><span class="who">${p?esc(p.name):"อีเวนต์ชีวิต"}</span><span class="label">${picking?"เลือกสถานที่ด้านล่าง":""}</span></div>
+   <div class="turnbox" style="background:${p?p.col:"var(--drab)"}"><span class="label">${p?(NET.mode&&p.id===NET.me?"ตาของคุณ":"ตาของ"):"สิ้นเดือน"}</span><span class="who">${p?esc(p.name):"อีเวนต์ชีวิต"}</span><span class="label">${picking?"เลือกสถานที่ด้านล่าง":(NET.mode&&S.wait?esc(S.wait):"")}</span></div>
   </div>
   <div class="locs">${LOCS.map(l=>`<button class="loc ${picking?"pick":""}" data-loc="${l.id}" ${picking&&!(l.id==="clinic"&&S.clinic>=2)?"":"disabled"} style="${picking?"":"opacity:1;cursor:default"}">
     <span class="nm">${l.name}</span><span class="act">${l.act}${l.id==="clinic"?` · ใช้ไป ${S.clinic}/2`:""}</span><span class="chip ${l.smoke}">${l.chip}</span>
     <span class="pawns">${(S.present[l.id]||[]).map(id=>`<span class="pawn" style="background:${S.players[id].col}" title="${esc(S.players[id].name)}">${esc(S.players[id].name.slice(0,1))}</span>`).join("")}</span></button>`).join("")}</div>
-  ${p?boardHTML(p):S.players.map(boardHTML).join("")}
+  ${NET.mode&&NET.me!=null&&S.players[NET.me]?boardHTML(S.players[NET.me]):p?boardHTML(p):S.players.map(boardHTML).join("")}
  </div>
  <aside>
   <div class="panel"><h3>ผู้เล่น</h3><div class="plist">${S.players.map(o=>`<div class="pl"><span class="dot" style="background:${o.col}"></span><span>${esc(o.name)}</span><span class="sc" title="แต้มถ้าจบตอนนี้">${score(o)}</span><span class="sub">${o.char?o.char.name+" · ":""}${o.mode==="smoke"?"สูบ":o.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"} · อยาก ${o.craving} · ติด ${o.add} · เงิน ${o.money} · โรค ${o.disease}${o.dcards.length?`+${o.dcards.length} การ์ด`:""}</span></div>`).join("")}</div><div class="small" style="margin-top:6px">แต้ม = ความสุข + โบนัส − (การ์ดโรค + โทเคนโรค)</div></div>
@@ -587,7 +595,15 @@ function setupHTML(){return `<div class="setup">
  <div><span class="label">จำนวนผู้เล่น</span><div class="seg" style="margin-top:4px">${[1,2,3,4].map(n=>`<button data-n="${n}" class="${n===setupN?"sel":""}">${n}</button>`).join("")}</div></div>
  ${[...Array(setupN)].map((_,i)=>`<div><label class="label" for="name${i}">ชื่อผู้เล่น ${i+1}</label><input id="name${i}" value="ผู้เล่น ${i+1}" maxlength="14"></div>`).join("")}
  <div class="row"><button class="primary" id="startBtn">เริ่มเดือนมกราคม</button><button data-tut="1">สอนเล่นก่อน (2 นาที)</button></div>
- <div class="small">เกมนี้เป็นเดโมทดลองกฎ ตัวเลขยังไม่ได้บาลานซ์ · สายด่วนเลิกบุหรี่ในไทย 1600</div>
+ <div class="small">ปรับบาลานซ์ด้วยบอทแล้ว ยังต้องเทสต์กับคนจริง · สายด่วนเลิกบุหรี่ในไทย 1600</div>
+</div>
+<div class="setup">
+ <h2>เล่นออนไลน์</h2>
+ <p style="margin:0">แต่ละคนเล่นบนเครื่องตัวเอง 2–4 คน คนตั้งห้องต้องเปิดหน้านี้ค้างไว้จนจบเกม</p>
+ <div><label class="label" for="netName">ชื่อของคุณ</label><input id="netName" maxlength="14" placeholder="เช่น โอ๊ค"></div>
+ <div class="row"><button class="primary" id="hostBtn">สร้างห้อง</button></div>
+ <div class="row" style="align-items:flex-end"><div style="flex:1;min-width:140px"><label class="label" for="netCode">รหัสห้อง</label><input id="netCode" maxlength="5" placeholder="เช่น KRBT" style="text-transform:uppercase"></div><button id="joinBtn">เข้าห้อง</button></div>
+ <div class="small" id="netMsg" role="status">${esc(NET.msg||"")}</div>
 </div>`}
 function endHTML(){
  const ranked=[...S.players].sort((a,b)=>score(b)-score(a)||penalty(a)-penalty(b)||b.money-a.money);
@@ -598,17 +614,125 @@ function endHTML(){
  ${ranked.map(p=>`<tr><td><div style="color:${p.col};font-weight:600">${esc(p.name)}</div><div class="small">${p.char?p.char.name:""}</div><div class="small">${p.goal?`เป้าหมายลับ: ${p.goal.name} ${p.goalDone?"✓ +"+p.goal.pts:"✗"}`:""}</div></td><td>${p.mode==="smoke"?`ยังสูบ ติดระดับ ${p.add}`:p.mode==="quit"?"กำลังเลิก":"เลิกสำเร็จ"}</td><td class="r">${p.happy}</td><td class="r">${p.bonus}</td><td class="r">−${penalty(p)}</td><td class="r"><b>${score(p)}</b></td></tr>`).join("")}
  </tbody></table></div>
  <div class="small">${ranked.map(p=>p.dcards.length?`${esc(p.name)}: ${p.dcards.map(c=>c.name).join(", ")}`:"").filter(Boolean).join(" · ")||"ไม่มีใครป่วยเป็นโรคจากการ์ด"}</div>
- <button class="primary" id="againBtn">เล่นใหม่</button>
+ ${NET.mode==="client"?`<div class="small">รอคนตั้งห้องเริ่มเกมใหม่</div>`:`<button class="primary" id="againBtn">เล่นใหม่</button>`}
  <div class="small">ถ้าในชีวิตจริงอยากเลิกบุหรี่ โทรสายด่วน 1600 ได้ฟรี</div></div>`}
+
+/* ---------- online (PeerJS host-authoritative) ---------- */
+const PEER_PREFIX="justonemore-th-";
+const TEST_BC=/[?&]bc=1/.test(location.search);
+function loadPeerLib(){return new Promise((res,rej)=>{if(TEST_BC||window.Peer)return res();const sc=document.createElement("script");sc.src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js";sc.onload=()=>res();sc.onerror=()=>rej(new Error("load"));document.head.appendChild(sc)})}
+/* BroadcastChannel stand-in used only for local testing (?bc=1) */
+function FakePeer(id){const self=this;this.id=id||("p"+Math.random().toString(36).slice(2,9));this.h={};this.conns={};const ch=new BroadcastChannel("jom-test");this.ch=ch;
+ ch.onmessage=e=>{const m=e.data;if(m.to!==self.id)return;
+  if(m.k==="hello"){const c=self._conn(m.from);c._fire("open");(self.h.connection||[]).forEach(f=>f(c));ch.postMessage({k:"ack",to:m.from,from:self.id})}
+  else if(m.k==="ack"){const c=self.conns[m.from];if(c)c._fire("open")}
+  else if(m.k==="data"){const c=self.conns[m.from];if(c)c._fire("data",m.d)}
+  else if(m.k==="bye"){const c=self.conns[m.from];if(c)c._fire("close")}};
+ setTimeout(()=>(self.h.open||[]).forEach(f=>f(self.id)),20)}
+FakePeer.prototype.on=function(ev,f){(this.h[ev]=this.h[ev]||[]).push(f);return this};
+FakePeer.prototype._conn=function(rid){const self=this;const c={peer:rid,h:{},on(ev,f){(this.h[ev]=this.h[ev]||[]).push(f);return this},_fire(ev,a){(this.h[ev]||[]).forEach(f=>f(a))},send(d){self.ch.postMessage({k:"data",to:rid,from:self.id,d:JSON.parse(JSON.stringify(d))})},close(){self.ch.postMessage({k:"bye",to:rid,from:self.id})}};this.conns[rid]=c;return c};
+FakePeer.prototype.connect=function(rid){const c=this._conn(rid);this.ch.postMessage({k:"hello",to:rid,from:this.id});return c};
+FakePeer.prototype.destroy=function(){this.ch.close()};
+function makePeer(id){return TEST_BC?new FakePeer(id):new window.Peer(id)}
+function genCode(){const A="ABCDEFGHJKLMNPQRSTUVWXYZ";return [...Array(4)].map(()=>A[rnd(A.length)]).join("")}
+function setMsg(t){NET.msg=t;const el=document.getElementById("netMsg");if(el)el.textContent=t;else render()}
+function myName(){const v=(document.getElementById("netName")||{}).value;return (v||"").trim().slice(0,14)}
+
+async function hostRoom(){
+ const name=myName();if(!name){setMsg("ใส่ชื่อของคุณก่อน");return}
+ setMsg("กำลังสร้างห้อง...");
+ try{await loadPeerLib()}catch(e){setMsg("โหลดระบบออนไลน์ไม่ได้ ลองเช็กอินเทอร์เน็ต หรือเปิดจาก GitHub Pages");return}
+ const code=genCode();let peer;
+ try{peer=makePeer(PEER_PREFIX+code)}catch(e){setMsg("เบราว์เซอร์นี้เล่นออนไลน์ไม่ได้");return}
+ NET.peer=peer;
+ peer.on("open",()=>{NET.mode="host";NET.code=code;NET.me=0;NET.lobby=[{name,pid:0,on:true}];NET.msg="";render()});
+ peer.on("error",err=>{if(err&&err.type==="unavailable-id"){setMsg("รหัสชนกัน ลองกดสร้างห้องอีกครั้ง")}else setMsg("เชื่อมต่อไม่สำเร็จ ("+((err&&err.type)||"error")+")")});
+ peer.on("connection",conn=>{conn.on("data",m=>hostOnData(conn,m));conn.on("close",()=>hostOnClose(conn))});
+}
+function hostOnData(conn,m){
+ if(!m||typeof m!=="object")return;
+ if(m.t==="join"){
+  const name=String(m.name||"").trim().slice(0,14)||"ผู้เล่น";
+  let slot=NET.lobby.find(x=>x.name===name&&x.pid!==0&&(!x.on||NET.started));
+  if(!slot&&NET.started){conn.send({t:"reject",why:"เกมเริ่มไปแล้ว เข้ากลับได้เฉพาะชื่อเดิมที่หลุดไป"});return}
+  const old=slot&&NET.conns[slot.pid];if(old&&old!==conn){try{old.send({t:"reject",why:"มีคนเข้าด้วยชื่อนี้จากเครื่องอื่นแล้ว"})}catch(e){}try{old.close()}catch(e){}}
+  if(!slot){if(NET.lobby.length>=4){conn.send({t:"reject",why:"ห้องเต็มแล้ว (4 คน)"});return}
+   if(NET.lobby.some(x=>x.name===name)){conn.send({t:"reject",why:"มีชื่อนี้ในห้องแล้ว ลองชื่ออื่น"});return}
+   slot={name,pid:NET.lobby.length,on:true};NET.lobby.push(slot)}
+  slot.on=true;NET.conns[slot.pid]=conn;conn._pid=slot.pid;
+  conn.send({t:"welcome",pid:slot.pid,code:NET.code});
+  if(S&&S.players[slot.pid])log(`${slot.name} กลับเข้าห้อง`);
+  render();
+  const pd=NET.pending[slot.pid];if(pd)conn.send({t:"prompt",id:pd.id,o:pd.o});
+  return}
+ const pid=conn._pid;if(pid==null)return;
+ if(m.t==="answer"){const pd=NET.pending[pid];if(pd&&pd.id===m.id){delete NET.pending[pid];if(S)S.wait="";pd.res({v:m.v,form:m.form||{}})}}
+ else if(m.t==="loc"){if(S&&S.cur===pid&&awaitLoc&&LOCS.some(l=>l.id===m.loc)&&!(m.loc==="clinic"&&S.clinic>=2))awaitLoc(m.loc)}
+ else if(m.t==="fa"){if(S&&S.cur===pid&&awaitLoc&&["quit","gum","goal"].includes(m.kind)){const p=S.players[pid];if(m.kind==="gum"&&!(p.gum>0&&p.craving>0))return;if(m.kind==="quit"&&p.mode!=="smoke")return;freeAction(m.kind)}}
+}
+function hostOnClose(conn){const pid=conn._pid;if(pid==null)return;if(NET.conns[pid]===conn){delete NET.conns[pid];const sl=NET.lobby.find(x=>x.pid===pid);if(sl)sl.on=false;if(S)log(`${sl?sl.name:"ผู้เล่น"} หลุดจากห้อง รอเข้ากลับด้วยชื่อเดิม`);render()}}
+function remotePrompt(pid,o){return new Promise(res=>{
+ const id=++NET.seq;const oo={title:o.title,body:o.body||"",who:o.who?{name:o.who.name,col:o.who.col,id:o.who.id}:null,buttons:o.buttons.map(b=>({label:b.label,value:b.value,kind:b.kind||"",disabled:!!b.disabled}))};
+ NET.pending[pid]={id,o:oo,res};if(S)S.wait=`รอ ${o.who.name} ตัดสินใจ`;render();
+ const c=NET.conns[pid];if(c)c.send({t:"prompt",id,o:oo})})}
+function netNotice(o){const oo={title:o.title,body:o.body||"",who:null,buttons:[{label:"ตกลง",value:1,kind:"primary"}]};for(const c of Object.values(NET.conns))c.send({t:"notice",o:oo})}
+let syncT=null;
+function netSync(){if(syncT)return;syncT=setTimeout(()=>{syncT=null;
+ for(const [pid,c] of Object.entries(NET.conns)){c.send({t:"state",S:S?snapshot(+pid):null,lobby:NET.lobby,turn:!!(S&&S.cur===+pid&&awaitLoc)})}},40)}
+function snapshot(pid){
+ const reveal=S.over;
+ return JSON.parse(JSON.stringify({...S,players:S.players.map(pl=>({...pl,goal:(reveal||pl.id===pid)?pl.goal:null}))}))}
+function startOnline(){
+ if(NET.lobby.length<2){setMsg("ต้องมีอย่างน้อย 2 คน");return}
+ NET.started=true;
+ S={quitters:0,players:NET.lobby.map(x=>newPlayer(x.pid,x.name)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false,wait:""};
+ runGame();
+}
+async function joinRoom(){
+ const name=myName();const code=((document.getElementById("netCode")||{}).value||"").trim().toUpperCase();
+ if(!name){setMsg("ใส่ชื่อของคุณก่อน");return}if(code.length<4){setMsg("ใส่รหัสห้อง 4 ตัว");return}
+ setMsg("กำลังเข้าห้อง...");
+ try{await loadPeerLib()}catch(e){setMsg("โหลดระบบออนไลน์ไม่ได้ ลองเช็กอินเทอร์เน็ต หรือเปิดจาก GitHub Pages");return}
+ NET.joinName=name;NET.joinCode=code;
+ let peer;try{peer=makePeer()}catch(e){setMsg("เบราว์เซอร์นี้เล่นออนไลน์ไม่ได้");return}
+ NET.peer=peer;
+ const fail=setTimeout(()=>{if(NET.mode!=="client")setMsg("หาห้องไม่เจอ เช็กรหัส หรือให้คนตั้งห้องเปิดหน้าเว็บค้างไว้")},12000);
+ peer.on("error",err=>{if(err&&err.type==="peer-unavailable")setMsg("หาห้องไม่เจอ เช็กรหัสอีกครั้ง");else setMsg("เชื่อมต่อไม่สำเร็จ ("+((err&&err.type)||"error")+")")});
+ peer.on("open",()=>{const conn=peer.connect(PEER_PREFIX+code,{reliable:true});NET.host=conn;
+  conn.on("open",()=>conn.send({t:"join",name}));
+  conn.on("data",m=>{clearTimeout(fail);clientOnData(m)});
+  conn.on("close",()=>{if(NET.mode==="client"){NET.lost=true;NET.msg="หลุดจากห้อง กดเข้าห้องใหม่ด้วยชื่อเดิมได้";render()}})});
+}
+function clientOnData(m){
+ if(!m||typeof m!=="object")return;
+ if(m.t==="reject"){setMsg(m.why||"เข้าห้องไม่ได้");return}
+ if(m.t==="welcome"){NET.mode="client";NET.me=m.pid;NET.code=m.code;NET.lost=false;NET.msg="";render();return}
+ if(m.t==="state"){S=m.S;if(m.lobby)NET.lobby=m.lobby;awaitLoc=m.turn?(loc=>NET.host.send({t:"loc",loc})):null;render();if(m.turn)focusLocs();return}
+ if(m.t==="prompt"){localModal(m.o).then(r=>NET.host.send({t:"answer",id:m.id,v:r.v,form:r.form}));return}
+ if(m.t==="notice"){if(!document.getElementById("modalRoot").innerHTML)localModal(m.o);return}
+}
+function lobbyHTML(){
+ const host=NET.mode==="host";
+ return `<div class="setup">
+ <h2>ห้อง ${esc(NET.code||"")}</h2>
+ <p style="margin:0">${host?"ส่งรหัสนี้ให้เพื่อน ให้เปิดหน้านี้แล้วกดเข้าห้อง":"เข้าห้องแล้ว รอคนตั้งห้องกดเริ่มเกม"}</p>
+ <div style="font-family:var(--font-mono);font-size:44px;letter-spacing:.2em;text-align:center;border:2px dashed var(--line);border-radius:10px;padding:8px 0" aria-label="รหัสห้อง">${esc(NET.code||"")}</div>
+ <div class="plist">${NET.lobby.map(x=>`<div class="pl"><span class="dot" style="background:${PCOL[x.pid]}"></span><span>${esc(x.name)}${x.pid===NET.me?" (คุณ)":""}${x.pid===0?" · ตั้งห้อง":""}</span><span class="small">${x.on?"พร้อม":"หลุด"}</span></div>`).join("")}</div>
+ ${host?`<div class="row"><button class="primary" id="startOnlineBtn" ${NET.lobby.length<2?"disabled":""}>เริ่มเกม (${NET.lobby.length}/4)</button><button data-tut="1">สอนเล่น</button></div><div class="small">ต้องมี 2–4 คน · คนตั้งห้องห้ามปิดหน้านี้จนจบเกม</div>`:`<div class="row"><button data-tut="1">อ่านวิธีเล่นระหว่างรอ</button></div>`}
+ <div class="small" id="netMsg" role="status">${esc(NET.msg||"")}</div>
+ </div>`}
 
 document.addEventListener("click",e=>{
  if(e.target.closest("[data-tut]")&&!document.getElementById("modalRoot").innerHTML){tutorial();return}
  const n=e.target.closest("[data-n]");if(n&&!S){setupN=+n.dataset.n;render();return}
  if(e.target.id==="startBtn"){const names=[...Array(setupN)].map((_,i)=>(document.getElementById("name"+i).value.trim()||`ผู้เล่น ${i+1}`));
   S={quitters:0,players:names.map((nm,i)=>newPlayer(i,nm)),month:1,round:1,cur:0,log:[],present:{},clinic:0,phase:"start",over:false};runGame();return}
- if(e.target.id==="againBtn"){S=null;render();return}
- const l=e.target.closest(".loc");if(l&&awaitLoc&&!l.disabled){awaitLoc(l.dataset.loc);return}
- const fa=e.target.closest("[data-fa]");if(fa&&awaitLoc){freeAction(fa.dataset.fa);return}
+ if(e.target.id==="hostBtn"){hostRoom();return}
+ if(e.target.id==="joinBtn"){joinRoom();return}
+ if(e.target.id==="startOnlineBtn"&&NET.mode==="host"&&!NET.started){startOnline();return}
+ if(e.target.id==="againBtn"){if(NET.mode==="host"){NET.pending={};S=null;NET.started=false;startOnline();return}S=null;render();return}
+ const l=e.target.closest(".loc");if(l&&awaitLoc&&!l.disabled&&(NET.mode!=="host"||S.cur===NET.me)){awaitLoc(l.dataset.loc);return}
+ const fa=e.target.closest("[data-fa]");if(fa&&awaitLoc&&(NET.mode!=="host"||S.cur===NET.me)){if(NET.mode==="client"){NET.host.send({t:"fa",kind:fa.dataset.fa});return}freeAction(fa.dataset.fa);return}
 });
 render();
 </script>
