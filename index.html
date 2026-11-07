@@ -181,7 +181,7 @@ const CHARS=[
  {id:"veteran",name:"สิงห์อมควัน 20 ปี",d:"เริ่มติดระดับ 3 ความอยาก 1 เงิน 13 บุหรี่ 2 ซอง สูบที่ที่ทำงานได้ ชินแล้ว สูบหมดทุก 4 ซองถึงติด +1 และสูบรวดไอเฉพาะทอยได้ 1",set:p=>{p.add=3;p.craving=1;p.money=13;p.hand.push("cheap")}},
  {id:"newbie",name:"เพิ่งเริ่มสูบ",d:"เริ่มความอยาก 0 เงิน 8 ไม่มีบุหรี่ และติดเร็ว สูบหมดทุก 2 ซองติด +1",set:p=>{p.add=2;p.craving=0;p.money=8;p.hand=[]}},
  {id:"office",name:"พนักงานออฟฟิศเครียด",d:"ทำงานได้เงิน +4 แทน +3 แต่เหนื่อย ทำงานทีไรความสุข −1",set:p=>{}},
- {id:"parent",name:"พ่อแม่ลูกอ่อน",d:"เริ่มความอยาก 3 สูบที่บ้านไม่ได้ แต่พักที่บ้านได้โทเคนสนับสนุนด้วย (ถือได้ทีละ 1)",set:p=>{p.craving=3}},
+ {id:"parent",name:"พ่อแม่ลูกอ่อน",d:"สูบที่บ้านไม่ได้ แต่พักที่บ้านได้โทเคนสนับสนุนด้วย (ถือได้ทีละ 1)",set:p=>{p.craving=2}},
  {id:"social",name:"สายปาร์ตี้",d:"เริ่มความอยาก 4 ไม่มีเงิน ชวนสูบสำเร็จได้ความสุข +2 แทน +1 แต่พักที่บ้านคนเดียวไม่ได้ความสุข",set:p=>{p.craving=4;p.money=0}},
  {id:"warned",name:"หมอเตือนแล้ว",d:"เริ่มเกมป่วยอยู่แล้ว มีการ์ดโรคไอเรื้อรัง (−3) แต่มีเงินเก็บ 9 และกลัวจนทอยต้านใจ +2 เสมอ",set:p=>{p.dcards.push({...DISEASES[0]});p.money=9}}
 ];
@@ -189,9 +189,13 @@ const GOALS=[
  {id:"mentor",name:"พี่เลี้ยง",d:"ให้กำลังใจคนอื่นตอนทอยต้านใจ 12 ครั้ง",pts:8,ok:p=>(p.st.enc||0)>=12},
  {id:"inviter",name:"ตัวป่วน",d:"ชวนคนที่กำลังเลิกให้สูบ ให้ได้สักครั้ง (เขาจะต้านได้หรือไม่ก็ได้)",pts:6,ok:p=>(p.st.tq||0)>=1},
  {id:"calm",name:"ใจเย็น",d:"ไม่เคยมีอาการถอนตอนสิ้นเดือนเลยทั้งเกม",pts:7,ok:p=>!(p.st.wd||0)},
- {id:"healthy",name:"ปอดสะอาด",d:"จบเกมโดยไม่ได้การ์ดโรคเพิ่มเลย",pts:10,ok:p=>p.dcards.length===(p.st.c0||0)},
+ {id:"healthy",name:"ปอดสะอาด",d:"จบเกมโดยไม่ได้การ์ดโรคเพิ่มเลย",pts:8,ok:p=>p.dcards.length===(p.st.c0||0)},
  {id:"chain",name:"มือรวด",d:"สูบรวด 4 ช่องในแอคชันเดียวให้ได้ 2 ครั้ง",pts:8,ok:p=>(p.st.c4||0)>=2},
- {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",pts:11,ok:p=>p.mode==="free"&&!p.st.lapsed}
+ {id:"clean",name:"ใจเพชร",d:"เลิกสำเร็จโดยไม่พลาดเลยสักครั้ง",pts:9,ok:p=>p.mode==="free"&&!p.st.lapsed},
+ {id:"regular",name:"ขาประจำ",d:"ไปจุดสูบหลังตึกตอนที่มีคนอื่นอยู่ก่อนแล้ว 4 ครั้ง",pts:8,ok:p=>(p.st.wSpot||0)>=4},
+ {id:"homebody",name:"คนรักบ้าน",d:"ทั้งเกมไม่เคยโดนควันมือสอง และโดนชวนสูบไม่เกิน 1 ครั้ง",pts:9,ok:p=>!(p.st.sh||0)&&(p.st.asked||0)<=1},
+ {id:"chiller",name:"สายชิล",d:"ไปร้านนั่งชิลตอนที่มีคนอื่นอยู่ก่อนแล้ว 10 ครั้ง",pts:6,ok:p=>(p.st.wChill||0)>=10},
+ {id:"worker",name:"คนขยัน",d:"จบเกมมีเงินเหลือมากที่สุดในโต๊ะ (เท่ากันก็นับ) และอย่างน้อย 12",pts:12,ok:p=>p.money>=12&&p.money>=Math.max(...S.players.map(o=>o.money))}
 ];
 const GOAL_PTS=6;
 const YIELD=[0,4,3,2,1,0];
@@ -300,7 +304,7 @@ async function smokeStep(p,loc){
  }
  if(n>1)log(`${p.name} สูบรวด ${n} ช่อง`);
  p.st.maxChain=Math.max(p.st.maxChain,n);if(n>=4)p.st.c4=(p.st.c4||0)+1;
- if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>addDisease(o,1,`ควันมือสองจาก ${p.name}`))}
+ if(others.length&&loc!=="spot"){p.happy-=others.length;log(`${p.name} สูบต่อหน้าคนอื่น ความสุข −${others.length}`);if(r.v==="cig")others.forEach(o=>{o.st.sh=(o.st.sh||0)+1;addDisease(o,1,`ควันมือสองจาก ${p.name}`)})}
  render();
  if((loc==="spot"||loc==="chill")&&others.length){
   const r2=await modal({title:"ชวนใครสูบด้วยไหม",who:p,body:`<div class="small">ถ้าเขารับ ได้ความสุข +1 ทั้งคู่ ถ้าปฏิเสธเขาเสียความสุข 1 ถ้าเขากำลังเลิก เขาต้องทอยต้านใจ</div>`,buttons:[...others.map(o=>({label:`ชวน ${esc(o.name)}`,value:o.id})),{label:"ไม่ชวน",value:-1}]});
@@ -308,6 +312,7 @@ async function smokeStep(p,loc){
  }
 }
 async function invite(p,o){
+ o.st.asked=(o.st.asked||0)+1;
  log(`${p.name} ชวน ${o.name} สูบ`);
  if(o.mode!=="smoke"){p.st.tq=(p.st.tq||0)+1;const out=await tempt(o,`${p.name} ชวนสูบ`);if(out!=="resist"){const b=isC(p,"social")?2:1;p.happy+=b;p.st.inv++;p.st.broke=(p.st.broke||0)+1;log(`${p.name} ความสุข +${b} (มีเพื่อนสูบด้วย)`)}render();return}
  const r=await modal({title:`${esc(p.name)} ชวนสูบด้วยกัน`,who:o,body:`<div>รับ: ได้ความสุข +1 ทั้งคู่ และสูบ 1 ช่อง${canCig(o)||canPod(o)?" จากของตัวเอง":" (เพื่อนแบ่งให้ โรค +1)"}</div><div>ปฏิเสธ: เสียความสุข 1 เพราะเกรงใจ</div>`,buttons:[{label:"รับ",value:1,kind:"ember"},{label:"ปฏิเสธ",value:0}]});
@@ -439,7 +444,7 @@ async function runGame(){
    for(const i of order){
     S.cur=i;const p=S.players[i];render();
     const loc=await new Promise(res=>{awaitLoc=res;render();focusLocs()});
-    awaitLoc=null;p.loc=loc;S.present[loc].push(p.id);log(`${p.name} ไป${LOCS.find(l=>l.id===loc).name}`);render();
+    awaitLoc=null;p.loc=loc;S.present[loc].push(p.id);p.st.loc=p.st.loc||{};p.st.loc[loc]=(p.st.loc[loc]||0)+1;if(S.present[loc].length>1){if(loc==="spot")p.st.wSpot=(p.st.wSpot||0)+1;if(loc==="chill")p.st.wChill=(p.st.wChill||0)+1}log(`${p.name} ไป${LOCS.find(l=>l.id===loc).name}`);render();
     await doLoc(p,loc);await smokeStep(p,loc);render();
    }
   }
